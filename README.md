@@ -1,4 +1,4 @@
-# Translatro C-Py
+# Translator C-Py
 Projekt polega na stworzeniu translatora, który tłumaczy w sposób automatyczny pliki z języka C do Pythona 3.x. 
 
 ## Pierwsze kroki

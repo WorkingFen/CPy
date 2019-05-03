@@ -37,7 +37,7 @@ void count();
 "void" 					{ count(); return(VOID); }
 "while" 				{ count(); return(WHILE); }
 
-{L}({L}|{D})* 			{ count(); return(check_type()); }
+{L}({L}|{D})* 			{ count(); return(IDENTIFIER); }
 
 0[xX]{H}+ 				{ count(); return(CONSTANT); }
 0{O}+ 					{ count(); return(CONSTANT); }
@@ -128,10 +128,4 @@ void count()
 			column++;
 
 	ECHO;
-}
-
-
-int check_type()
-{
-	return(IDENTIFIER);
 }

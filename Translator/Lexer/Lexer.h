@@ -18,6 +18,7 @@ namespace Lexer {
 		void ignore_whitespaces();
 		Source* get_source() { return source; }
 
+		Token comment(bool type);
 		Token get_chars_token();
 		Token get_string_token();
 		Token get_string_token(std::string, char);

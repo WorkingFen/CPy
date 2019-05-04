@@ -4,8 +4,8 @@
 
 namespace Lexer {
 	struct TextPos {
-		unsigned int rn, cn;               // Numer wiersza, znaku
-		TextPos(int r = 0, int c = 0) : rn(r), cn(c) {}
+		unsigned int rn, cn, sn;               // Numer wiersza, znaku pisanego, znaku czytanego
+		TextPos(int r = 0, int c = 0, int s = 0) : rn(r), cn(c), sn(s) {}
 	};
 
 	class Source {
@@ -14,6 +14,7 @@ namespace Lexer {
 		bool is_beginning;
 		std::string line;
 		bool new_line;
+		bool after_comment;
 
 	public:
 		Source(const std::string fileName);
@@ -25,6 +26,7 @@ namespace Lexer {
 		const TextPos& get_pos() const { return current_position; }
 		bool is_new_line() const { return new_line; }
 		void set_new_line(bool value) { new_line = value; }
+		void set_after_comment(bool value) { after_comment = value; }
 
 	};
 }

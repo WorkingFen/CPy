@@ -24,7 +24,7 @@ Lexer::Lexer::Lexer(Source* source_) : source(source_) {
 	map.insert(std::make_pair("int", Type::INT));
 	map.insert(std::make_pair("long", Type::LONG));
 	map.insert(std::make_pair("signed", Type::SIGNED));
-	map.insert(std::make_pair("unsigned", Type::UNSGINED));
+	map.insert(std::make_pair("unsigned", Type::UNSIGNED));
 	map.insert(std::make_pair("float", Type::FLOAT));
 	map.insert(std::make_pair("double", Type::DOUBLE));
 	map.insert(std::make_pair("void", Type::VOID));
@@ -69,14 +69,47 @@ void Lexer::Lexer::get_next_token() {
 	else if(current_char == '0') token = get_number_token();										// Get octal and hexal numbers OR zero
 	else if(std::regex_match(tmp, d)) token = get_digit_token();									// Get digits
 	else if(current_char == EOF) token.set_type(Type::eof);											// Get EOF
-	else if(std::regex_match(tmp, g)) token = get_other_token();									// Get other tokens
+	else if(std::regex_match(tmp, g)) {
+		if(current_char == '/') {
+			char tmp;
+			if((tmp = source->next_char()) == '/') token = comment(1);
+			else if(tmp == '*') token = comment(0);
+			else {
+				source->prev_char();
+				token = get_other_token();															// Get other tokens
+			}
+		}
+		else
+			token = get_other_token();																// Get other tokens
+	}
 	else token.set_type(Type::none);																// Unknown token
 }
 
 void Lexer::Lexer::ignore_whitespaces() {
 	do{
 		current_char = source->next_char();
+#ifdef _DEBUG
+		std::cout << (int)current_char << " '" << current_char << "' " << "symbol number: " << source->get_pos().sn << std::endl;
+#endif
 	}while(isspace(current_char));
+}
+
+// Type 0 is block "/*", type 1 is line "//"
+Lexer::Token Lexer::Lexer::comment(bool type) {
+	Token tmp;
+	std::string x = "";
+	if(type) source->next_line();
+	else {
+		char c, c1;
+		do {
+			while((c = source->next_char()) != '*' && c != 0);
+		}while(((c1 = source->next_char()) != '/' && c != 0));
+	}
+	source->set_new_line(false);
+	source->set_after_comment(true);
+	tmp.set_chars(x);
+	tmp.set_type(Type::comment);
+	return tmp;
 }
 
 Lexer::Token Lexer::Lexer::get_chars_token() {
@@ -246,7 +279,20 @@ Lexer::Token Lexer::Lexer::get_other_token() {
 	std::string x = "";
 	std::string text = "";
 
-	do{
+	text = current_char;
+
+	if(std::regex_match(text, p)) {
+		do {
+#ifdef _DEBUG
+			std::cout << current_char;
+#endif
+			if(current_char == '\\') current_char = source->next_char();
+			x += current_char;
+			current_char = source->next_char();
+			text = current_char;
+		}while(std::regex_match(text, p));
+	}
+	else {
 #ifdef _DEBUG
 		std::cout << current_char;
 #endif
@@ -254,7 +300,7 @@ Lexer::Token Lexer::Lexer::get_other_token() {
 		x += current_char;
 		current_char = source->next_char();
 		text = current_char;
-	}while(std::regex_match(text, p));
+	}
 
 	if(current_char != EOF) source->prev_char();
 

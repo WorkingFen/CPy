@@ -27,7 +27,7 @@ namespace Lexer {
 		INT,
 		LONG,
 		SIGNED,
-		UNSGINED,
+		UNSIGNED,
 		FLOAT,
 		DOUBLE,
 		VOID,
@@ -43,6 +43,7 @@ namespace Lexer {
 		FOR,
 		BREAK,
 		RETURN,
+		comment,
 		other,
 		none,
 		eof,
@@ -54,7 +55,6 @@ namespace Lexer {
 		Type type;
 
 		std::string chars;
-		char function[100];
 
 	public:
 		Token() : type(Type::eof) {}

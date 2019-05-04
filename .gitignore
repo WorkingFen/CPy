@@ -33,3 +33,5 @@
 
 # VS files
 */.vs
+*/*/Release
+*/Release

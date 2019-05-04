@@ -13,6 +13,7 @@ void count();
 
 %%
 "/*" 					{ comment(); }
+"//"					{ comment_line(); }
 
 "break" 				{ count(); return(BREAK); }
 "case" 					{ count(); return(CASE); }
@@ -82,6 +83,7 @@ L?\"(\\.|[^\\"])*\" 	{ count(); return(STRING_LITERAL); }
 "<" 			 		{ count(); return('<'); }
 ">" 					{ count(); return('>'); }
 "?"						{ count(); return('?'); }
+"#"						{ count(); return('#'); }
 
 [ \t\v\n\f] 			{ count(); }
 . 						{ /* ignore bad characters */ }
@@ -110,6 +112,15 @@ loop:
 
 	if (c != 0)
 		putchar(c1);
+}
+
+comment_line()
+{
+	char c, c1;
+	
+loop:
+	while ((c = input()) != '\n')
+		putchar(c);
 }
 
 

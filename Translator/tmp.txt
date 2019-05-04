@@ -1,3 +1,13 @@
+// To powinno byæ ominiête niezwa¿aj¹c co tutaj wpiszê 123251!@#4$@#$%^!@#!!@# /*
+
+/* To tak¿e powinno byæ pominiête
+	Tutaj te¿
+   I to
+*  No i to
+Tutaj zakoñczy siê komentarz*/
+
+//Funkcja silnia
+
 int silnia(int x) {
 	if(x == 0)
 		return 1;
@@ -5,6 +15,8 @@ int silnia(int x) {
 		return x * silnia(x - 1);
 }
 
+
+/*Funkcja Hello World */
 #include <stdio.h>
 
 int main() {

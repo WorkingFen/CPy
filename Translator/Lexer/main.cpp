@@ -121,7 +121,7 @@ void cout_type(Lexer::Token token) {
 		case Lexer::Type::TYPE_NAME:
 			std::cout << "TYPE_NAME";
 			break;
-		case Lexer::Type::UNSGINED:
+		case Lexer::Type::UNSIGNED:
 			std::cout << "UNSIGNED";
 			break;
 		case Lexer::Type::VOID:
@@ -151,11 +151,16 @@ int main(int argc, char* argv[]) {
 	while(token.get_type() != Lexer::Type::eof) {
 		scan.get_next_token();
 		token = scan.get_token();
-		cout_type(token);
-		if(token.get_type() != Lexer::Type::eof) std::cout << ", ";
-		if(scan.get_source()->is_new_line()) {
-			std::cout << std::endl;
-			scan.get_source()->set_new_line(false);
+#ifdef _DEBUG
+		std::cout << scan.get_source()->is_new_line();
+#endif
+		if(token.get_type() != Lexer::Type::comment) {
+			cout_type(token);
+			if(token.get_type() != Lexer::Type::eof) std::cout << ", ";
+			if(scan.get_source()->is_new_line()) {
+				std::cout << std::endl;
+				scan.get_source()->set_new_line(false);
+			}
 		}
 	}
 

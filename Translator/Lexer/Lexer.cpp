@@ -42,10 +42,6 @@ Lexer::Lexer::Lexer(Source* source_) : source(source_) {
 	map.insert(std::make_pair("return", Type::RETURN));
 }
 
-Lexer::Token Lexer::Lexer::get_token() {
-	return token;
-}
-
 void Lexer::Lexer::get_next_token() {
 	std::regex l("[[:alpha:]_]");
 	std::regex d("[[:digit:]]");
@@ -53,23 +49,35 @@ void Lexer::Lexer::get_next_token() {
 
 	ignore_whitespaces();
 
-	std::string tmp = "";
-	tmp += current_char;
+	std::string text = "";
+	text = current_char;
 
-	if(std::regex_match(tmp, l)) {																	// Get string or constant char that starts with L"", L'' or get Identifier
+	if(std::regex_match(text, l)) {																	// Get string or constant char that starts with L"", L'' or get Identifier
 		if(current_char == 'L') {
 			token = get_string_token();
 		}
-		else token = get_chars_token();		
+		else token = get_literals_token();		
 	}
 	else if(current_char == '\'' || current_char == '"') {											// Get string or constant char
 		std::string x = "";
 		token = get_string_token(x, current_char);
 	}
 	else if(current_char == '0') token = get_number_token();										// Get octal and hexal numbers OR zero
-	else if(std::regex_match(tmp, d)) token = get_digit_token();									// Get digits
+	else if(std::regex_match(text, d)) token = get_digit_token(1);									// Get digits
+	else if(current_char == '.') {
+		char tmp = source->next_char();
+		text = tmp;
+		if(std::regex_match(text, d)) {
+			source->prev_char();
+			token = get_digit_token(0);																// Get digits
+		}
+		else {
+			source->prev_char();
+			token = get_other_token();																// Get other tokens
+		}
+	}
 	else if(current_char == EOF) token.set_type(Type::eof);											// Get EOF
-	else if(std::regex_match(tmp, g)) {
+	else if(std::regex_match(text, g)) {
 		if(current_char == '/') {
 			char tmp;
 			if((tmp = source->next_char()) == '/') token = comment(1);
@@ -97,22 +105,20 @@ void Lexer::Lexer::ignore_whitespaces() {
 // Type 0 is block "/*", type 1 is line "//"
 Lexer::Token Lexer::Lexer::comment(bool type) {
 	Token tmp;
-	std::string x = "";
 	if(type) source->next_line();
 	else {
-		char c, c1;
+		char c;
 		do {
 			while((c = source->next_char()) != '*' && c != 0);
-		}while(((c1 = source->next_char()) != '/' && c != 0));
+		}while(((c = source->next_char()) != '/' && c != 0));
 	}
 	source->set_new_line(false);
 	source->set_after_comment(true);
-	tmp.set_chars(x);
 	tmp.set_type(Type::comment);
 	return tmp;
 }
 
-Lexer::Token Lexer::Lexer::get_chars_token() {
+Lexer::Token Lexer::Lexer::get_literals_token() {
 	std::regex d("[[:digit:]]");
 	std::regex l("[[:alpha:]_]");
 
@@ -126,6 +132,7 @@ Lexer::Token Lexer::Lexer::get_chars_token() {
 #endif
 		x += current_char;
 		current_char = source->next_char();
+		if(source->is_new_line() || isspace(current_char)) break;
 		text = current_char;
 	}while(std::regex_match(text, l) || std::regex_match(text, d));
 
@@ -163,7 +170,6 @@ Lexer::Token Lexer::Lexer::get_string_token(std::string z, char curr) {
 
 	x += current_char;
 	current_char = source->next_char();
-	text = current_char;
 
 	do{
 #ifdef _DEBUG
@@ -172,6 +178,11 @@ Lexer::Token Lexer::Lexer::get_string_token(std::string z, char curr) {
 		if(current_char == '\\') {
 			x += current_char;
 			current_char = source->next_char();
+			if(source->is_new_line() && current_char == curr) {
+				x += current_char;
+				current_char = source->next_char();
+				break;
+			}
 		}
 		else if(current_char == curr) {
 			x += current_char;
@@ -180,6 +191,10 @@ Lexer::Token Lexer::Lexer::get_string_token(std::string z, char curr) {
 		}
 		x += current_char;
 		current_char = source->next_char();
+		if(source->is_new_line()) {								//It will be an error
+			tmp.set_type(Type::error);
+			return tmp;
+		}
 		text = current_char;
 	}while(std::regex_match(text, p));
 
@@ -194,8 +209,10 @@ Lexer::Token Lexer::Lexer::get_string_token(std::string z, char curr) {
 
 Lexer::Token Lexer::Lexer::get_number_token() {
 	std::regex o("[0-7]");
+	std::regex d("[[:digit:]]");
 	std::regex h("[[:xdigit:]]");
 	std::regex xs("[xX]");
+	std::regex g("[;,)]");
 
 	Token tmp;
 	std::string x = "";
@@ -205,35 +222,61 @@ Lexer::Token Lexer::Lexer::get_number_token() {
 	current_char = source->next_char();
 	text = current_char;
 
-	if(std::regex_match(text, xs)) {
+	if(std::regex_match(text, xs)) {						//Hexadecimal
+		x += current_char;
+		current_char = source->next_char();
+		if(source->is_new_line() || isspace(current_char)) {			//It will be an error
+			tmp.set_type(Type::error);
+			return tmp;
+		}
 		text = current_char;
-		do {
+		while(std::regex_match(text, h)) {
 #ifdef _DEBUG
 			std::cout << current_char;
 #endif
 			x += current_char;
-			if(!std::regex_match(text, h) && current_char != ';') {
+			current_char = source->next_char();
+			if(source->is_new_line() || isspace(current_char)) break;
+			text = current_char;
+			if(!std::regex_match(text, h) && !std::regex_match(text, g)) {		//It will be an error
 				tmp.set_type(Type::error);
 				return tmp;
 			}
-			current_char = source->next_char();
-			text = current_char;
-		} while(std::regex_match(text, h));
+		}
 	}
-	else if(std::regex_match(text, o)) {
-		text = current_char;
+	else if(std::regex_match(text, o)) {					//Octal
 		do {
 #ifdef _DEBUG
 			std::cout << current_char;
 #endif
 			x += current_char;
-			if(!std::regex_match(text, o) && current_char != ';') {
+			current_char = source->next_char();
+			if(source->is_new_line() || isspace(current_char)) break;
+			text = current_char;
+			if(!std::regex_match(text, o) && !std::regex_match(text, g)) {		//It will be an error
 				tmp.set_type(Type::error);
 				return tmp;
 			}
-			current_char = source->next_char();
-			text = current_char;
 		} while(std::regex_match(text, o));
+	}
+	else if(current_char == '.') {							//Decimal starting with 0
+		do {
+#ifdef _DEBUG
+			std::cout << current_char;
+#endif
+			x += current_char;
+			current_char = source->next_char();
+			if(source->is_new_line() || isspace(current_char)) break;
+			text = current_char;
+			if(!std::regex_match(text, d) && !std::regex_match(text, g)) {		//It will be an error
+				tmp.set_type(Type::error);
+				return tmp;
+			}
+		} while(std::regex_match(text, d));
+	}
+	else if(!std::regex_match(text, g) && !source->is_new_line() && !isspace(current_char)) {			//It will be an error
+		tmp.set_type(Type::error);
+		return tmp;
 	}
 
 	if(current_char != EOF) source->prev_char();
@@ -243,26 +286,46 @@ Lexer::Token Lexer::Lexer::get_number_token() {
 	return tmp;
 }
 
-Lexer::Token Lexer::Lexer::get_digit_token() {
+// Type 0 starts with '.', type 1 starts with digit
+Lexer::Token Lexer::Lexer::get_digit_token(bool type) {
 	std::regex d("[[:digit:]]");
+	std::regex g("[;,)]");
 
 	Token tmp;
 	std::string x = ""; 
 	std::string text = "";
-	text = current_char;
 
-	do{
+	do {
 #ifdef _DEBUG
 		std::cout << current_char;
 #endif
 		x += current_char;
-		if(!std::regex_match(text, d)) {
-			tmp.set_type(Type::error);
-			return tmp;
-		}
 		current_char = source->next_char();
+		if(source->is_new_line() || isspace(current_char)) break;
 		text = current_char;
-	}while(std::regex_match(text, d));
+		if(!std::regex_match(text, d) && !std::regex_match(text, g)) {
+			if(type && current_char == '.') {
+				do {
+#ifdef _DEBUG
+					std::cout << current_char;
+#endif
+					x += current_char;
+					current_char = source->next_char();
+					if(source->is_new_line() || isspace(current_char)) break;
+					text = current_char;
+					if(!std::regex_match(text, d) && !std::regex_match(text, g)) {		//It will be an error
+						tmp.set_type(Type::error);
+						return tmp;
+					}
+				} while(std::regex_match(text, d));
+			}
+			else{												//It will be an error
+				tmp.set_type(Type::error);
+				return tmp;
+			}
+			break;
+		}
+	} while(std::regex_match(text, d));
 
 	if(current_char != EOF) source->prev_char();
 
@@ -286,9 +349,9 @@ Lexer::Token Lexer::Lexer::get_other_token() {
 #ifdef _DEBUG
 			std::cout << current_char;
 #endif
-			if(current_char == '\\') current_char = source->next_char();
 			x += current_char;
 			current_char = source->next_char();
+			if(source->is_new_line() || isspace(current_char)) break;
 			text = current_char;
 		}while(std::regex_match(text, p));
 	}
@@ -297,9 +360,9 @@ Lexer::Token Lexer::Lexer::get_other_token() {
 		std::cout << current_char;
 #endif
 		if(current_char == '\\') current_char = source->next_char();
+		// Error gdy nic nie ma po "\" (Ogarn¹æ)
 		x += current_char;
 		current_char = source->next_char();
-		text = current_char;
 	}
 
 	if(current_char != EOF) source->prev_char();

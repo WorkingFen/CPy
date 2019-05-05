@@ -2,7 +2,6 @@ O 						[0-7]
 D 						[0-9]
 L 						[a-zA-Z_]
 H 						[a-fA-F0-9]
-E 						[Ee][+-]?{D}+
 
 %{
 #include <stdio.h>
@@ -45,9 +44,8 @@ void count();
 {D}+ 					{ count(); return(CONSTANT); }
 L?'(\\.|[^\\'])+' 		{ count(); return(CONSTANT); }
 
-{D}+{E} 				{ count(); return(CONSTANT); }
-{D}*"."{D}+({E})? 		{ count(); return(CONSTANT); }
-{D}+"."{D}*({E})? 		{ count(); return(CONSTANT); }
+{D}*"."{D}+				{ count(); return(CONSTANT); }
+{D}+"."{D}*				{ count(); return(CONSTANT); }
 
 L?\"(\\.|[^\\"])*\" 	{ count(); return(STRING_LITERAL); }
 

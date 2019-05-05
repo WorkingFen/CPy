@@ -1,4 +1,4 @@
-%token IDENTIFIER CONSTANT STRING_LITERAL TYPE_NAME
+%token IDENTIFIER CONSTANT STRING_LITERAL
 %token INC_OP DEC_OP LE_OP GE_OP EQ_OP NE_OP AND_OP OR_OP
 %token MUL_ASSIGN DIV_ASSIGN MOD_ASSIGN ADD_ASSIGN SUB_ASSIGN
 
@@ -97,14 +97,12 @@ expression : assignment_expression
 | expression ',' assignment_expression
 ;
 
-constant_expression : conditional_expression;
-
 declaration : declaration_specifiers ';'
 | declaration_specifiers init_declarator_list ';'
 ;
 
-declaration_specifiers : storage_class_specifier
-| storage_class_specifier declaration_specifiers
+declaration_specifiers : TYPEDEF
+| TYPEDEF declaration_specifiers
 | type_specifier
 | type_specifier declaration_specifiers
 ;
@@ -113,11 +111,9 @@ init_declarator_list : init_declarator
 | init_declarator_list ',' init_declarator
 ;
 
-init_declarator : declarator
-| declarator '=' initializer
+init_declarator : direct_declarator
+| direct_declarator '=' initializer
 ;
-
-storage_class_specifier : TYPEDEF;
 
 type_specifier : VOID
 | CHAR
@@ -130,21 +126,16 @@ type_specifier : VOID
 | UNSIGNED
 | struct_or_union_specifier
 | enum_specifier
-| TYPE_NAME
 ;
 
-struct_or_union_specifier : struct_or_union IDENTIFIER '{' struct_declaration_list '}'
-| struct_or_union '{' struct_declaration_list '}'
-| struct_or_union IDENTIFIER
+struct_or_union_specifier : STRUCT IDENTIFIER '{' struct_declaration_list '}'
+| STRUCT '{' struct_declaration_list '}'
+| STRUCT IDENTIFIER
 ;
 
-struct_or_union : STRUCT;
-
-struct_declaration_list : struct_declaration
-| struct_declaration_list struct_declaration
+struct_declaration_list : specifier_qualifier_list struct_declarator_list ';'
+| struct_declaration_list specifier_qualifier_list struct_declarator_list ';'
 ;
-
-struct_declaration : specifier_qualifier_list struct_declarator_list ';';
 
 specifier_qualifier_list : type_specifier specifier_qualifier_list
 | type_specifier
@@ -154,9 +145,9 @@ struct_declarator_list : struct_declarator
 | struct_declarator_list ',' struct_declarator
 ;
 
-struct_declarator : declarator
-| ':' constant_expression
-| declarator ':' constant_expression
+struct_declarator : direct_declarator
+| ':' conditional_expression
+| direct_declarator ':' conditional_expression
 ;
 
 enum_specifier : ENUM '{' enumerator_list '}'
@@ -169,28 +160,24 @@ enumerator_list : enumerator
 ;
 
 enumerator : IDENTIFIER
-| IDENTIFIER '=' constant_expression
+| IDENTIFIER '=' conditional_expression
 ;
 
-declarator : direct_declarator;
-
 direct_declarator : IDENTIFIER
-| '(' declarator ')'
-| direct_declarator '[' constant_expression ']'
+| '(' direct_declarator ')'
+| direct_declarator '[' conditional_expression ']'
 | direct_declarator '[' ']'
-| direct_declarator '(' parameter_type_list ')'
+| direct_declarator '(' parameter_list ')'
 | direct_declarator '(' identifier_list ')'
 | direct_declarator '(' ')'
 ;
-
-parameter_type_list : parameter_list;
 
 parameter_list : parameter_declaration
 | parameter_list ',' parameter_declaration
 ;
 
-parameter_declaration : declaration_specifiers declarator
-| declaration_specifiers abstract_declarator
+parameter_declaration : declaration_specifiers direct_declarator
+| declaration_specifiers direct_abstract_declarator
 | declaration_specifiers
 ;
 
@@ -199,20 +186,18 @@ identifier_list : IDENTIFIER
 ;
 
 type_name : specifier_qualifier_list
-| specifier_qualifier_list abstract_declarator
+| specifier_qualifier_list direct_abstract_declarator
 ;
 
-abstract_declarator : direct_abstract_declarator;
-
-direct_abstract_declarator : '(' abstract_declarator ')'
+direct_abstract_declarator : '(' direct_abstract_declarator ')'
 | '[' ']'
-| '[' constant_expression ']'
+| '[' conditional_expression ']'
 | direct_abstract_declarator '[' ']'
-| direct_abstract_declarator '[' constant_expression ']'
+| direct_abstract_declarator '[' conditional_expression ']'
 | '(' ')'
-| '(' parameter_type_list ')'
+| '(' parameter_list ')'
 | direct_abstract_declarator '(' ')'
-| direct_abstract_declarator '(' parameter_type_list ')'
+| direct_abstract_declarator '(' parameter_list ')'
 ;
 
 initializer : assignment_expression
@@ -233,7 +218,7 @@ statement : labeled_statement
 ;
 
 labeled_statement : IDENTIFIER ':' statement
-| CASE constant_expression ':' statement
+| CASE conditional_expression ':' statement
 | DEFAULT ':' statement
 ;
 
@@ -279,10 +264,10 @@ external_declaration : function_definition
 | declaration
 ;
 
-function_definition : declaration_specifiers declarator declaration_list compound_statement
-| declaration_specifiers declarator compound_statement
-| declarator declaration_list compound_statement
-| declarator compound_statement
+function_definition : declaration_specifiers direct_declarator declaration_list compound_statement
+| declaration_specifiers direct_declarator compound_statement
+| direct_declarator declaration_list compound_statement
+| direct_declarator compound_statement
 ;
 
 %%

@@ -1,3 +1,6 @@
+#ifndef LEXER.H
+#define LEXER.H
+
 #include "Token.h"
 #include <map>
 #include <regex>
@@ -11,7 +14,7 @@ namespace Lexer {
 		std::map<std::string, Type> map;
 
 	public:
-		Lexer(Source* source);
+		Lexer(Source*);
 
 		Token get_token() { return token; }
 		void get_next_token();
@@ -27,3 +30,5 @@ namespace Lexer {
 		Token get_other_token();
 	};
 }
+
+#endif

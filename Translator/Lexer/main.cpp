@@ -118,9 +118,6 @@ void cout_type(Lexer::Token token) {
 		case Lexer::Type::TYPEDEF:
 			std::cout << "TYPEDEF";
 			break;
-		case Lexer::Type::TYPE_NAME:
-			std::cout << "TYPE_NAME";
-			break;
 		case Lexer::Type::UNSIGNED:
 			std::cout << "UNSIGNED";
 			break;
@@ -163,6 +160,8 @@ int main(int argc, char* argv[]) {
 			}
 		}
 	}
+
+	// Check semantics here
 
 	return 0;
 }

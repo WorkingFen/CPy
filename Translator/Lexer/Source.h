@@ -1,3 +1,6 @@
+#ifndef SOURCE.H
+#define SOURCE.H
+
 #include <fstream>
 #include <iostream>
 #include <string>
@@ -30,3 +33,5 @@ namespace Lexer {
 
 	};
 }
+
+#endif

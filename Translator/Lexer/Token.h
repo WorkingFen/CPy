@@ -1,3 +1,6 @@
+#ifndef TOKEN.H
+#define TOKEN.H
+
 #include "Source.h"
 #include <string>
 
@@ -7,7 +10,6 @@ namespace Lexer {
 		IDENTIFIER,
 		CONSTANT,
 		STRING_LITERAL,
-		TYPE_NAME,
 		INC_OP,
 		DEC_OP,
 		LE_OP,
@@ -53,24 +55,15 @@ namespace Lexer {
 	class Token
 	{
 		Type type;
-
 		std::string chars;
 
 	public:
 		Token() : type(Type::eof) {}
-
 		Type get_type() const { return type; }
-
-		void set_type(Type setType) {
-			type = setType;
-		}
-
-		void set_chars(std::string characters) {
-			chars = characters;
-		}
-
-		std::string get_chars() {
-			return chars;
-		}
+		void set_type(Type setType) { type = setType; }
+		void set_chars(std::string characters) { chars = characters; }
+		std::string get_chars() { return chars;	}
 	};
 }
+
+#endif

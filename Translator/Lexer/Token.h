@@ -1,12 +1,11 @@
-#ifndef TOKEN.H
-#define TOKEN.H
+#ifndef TOKEN_H
+#define TOKEN_H
 
 #include "Source.h"
 #include <string>
 
 namespace Lexer {
-	enum class Type
-	{
+	enum class Type {
 		IDENTIFIER,
 		CONSTANT,
 		STRING_LITERAL,
@@ -52,13 +51,14 @@ namespace Lexer {
 		error
 	};
 
-	class Token
-	{
+	class Token {
 		Type type;
 		std::string chars;
 
 	public:
 		Token() : type(Type::eof) {}
+		~Token() {};
+
 		Type get_type() const { return type; }
 		void set_type(Type setType) { type = setType; }
 		void set_chars(std::string characters) { chars = characters; }

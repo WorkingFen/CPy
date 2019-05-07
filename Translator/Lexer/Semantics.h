@@ -1,9 +1,21 @@
-#ifndef SEMANTICS.H
-#define SEMANTICS.H
+#ifndef SEMANTICS_H
+#define SEMANTICS_H
 
 #include "Token.h"
+#include <vector>
 
 namespace Lexer {
+	class Semantics {
+		std::vector<Token> tokens;
+
+	public:
+		Semantics() {};
+		~Semantics() {};
+
+		void push_back(Token value) { tokens.push_back(value); }
+		std::vector<Token> get_tokens() { return tokens; }
+	};
+
 	bool primary_expression(Token);
 	bool postfix_expression(Token);
 	bool argument_expression_list(Token);

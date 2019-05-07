@@ -1,6 +1,7 @@
 #include <iostream>
 #include <sstream>
 #include "Lexer.h"
+#include "Semantics.h"
 
 void cout_type(Lexer::Token token) {
 	switch(token.get_type()) {
@@ -142,6 +143,7 @@ int main(int argc, char* argv[]) {
 	std::string fileName = argv[1];
 	Lexer::Source source(fileName);
 	Lexer::Lexer scan(&source);
+	Lexer::Semantics semantics;
 	Lexer::Token token;
 	token.set_type(Lexer::Type::none);
 
@@ -158,9 +160,14 @@ int main(int argc, char* argv[]) {
 				std::cout << std::endl;
 				scan.get_source()->set_new_line(false);
 			}
+			semantics.push_back(token);
 		}
 	}
 
+	for(auto i : semantics.get_tokens()) {
+		std::cout << std::endl << "________________" << std::endl;
+		cout_type(i);
+	}
 	// Check semantics here
 
 	return 0;

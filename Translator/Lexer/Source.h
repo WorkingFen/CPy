@@ -1,5 +1,5 @@
-#ifndef SOURCE.H
-#define SOURCE.H
+#ifndef SOURCE_H
+#define SOURCE_H
 
 #include <fstream>
 #include <iostream>

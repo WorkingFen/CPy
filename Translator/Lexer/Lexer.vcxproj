@@ -21,10 +21,12 @@
   <ItemGroup>
     <ClCompile Include="Lexer.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Semantics.cpp" />
     <ClCompile Include="Source.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Lexer.h" />
+    <ClInclude Include="Semantics.h" />
     <ClInclude Include="Source.h" />
     <ClInclude Include="Token.h" />
   </ItemGroup>

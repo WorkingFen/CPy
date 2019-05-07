@@ -4,10 +4,12 @@
     <ClCompile Include="Lexer.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Source.cpp" />
+    <ClCompile Include="Semantics.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Lexer.h" />
     <ClInclude Include="Source.h" />
     <ClInclude Include="Token.h" />
+    <ClInclude Include="Semantics.h" />
   </ItemGroup>
 </Project>

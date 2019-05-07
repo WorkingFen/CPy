@@ -1,13 +1,12 @@
-#ifndef LEXER.H
-#define LEXER.H
+#ifndef LEXER_H
+#define LEXER_H
 
 #include "Token.h"
 #include <map>
 #include <regex>
 
 namespace Lexer {
-	class Lexer
-	{
+	class Lexer {
 		Source* source;
 		Token token;
 		char current_char;
@@ -15,6 +14,7 @@ namespace Lexer {
 
 	public:
 		Lexer(Source*);
+		~Lexer() {};
 
 		Token get_token() { return token; }
 		void get_next_token();

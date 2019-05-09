@@ -3,7 +3,7 @@
 #include <stdexcept>
 #include <iostream>
 
-Lexer::Lexer::Lexer(Source* source_) : source(source_) {
+Translator::Lexer::Lexer(Source* source_) : source(source_) {
 	source->next_char();
 	map.insert(std::make_pair("++", Type::INC_OP));
 	map.insert(std::make_pair("--", Type::DEC_OP));
@@ -42,7 +42,7 @@ Lexer::Lexer::Lexer(Source* source_) : source(source_) {
 	map.insert(std::make_pair("return", Type::RETURN));
 }
 
-void Lexer::Lexer::get_next_token() {
+void Translator::Lexer::get_next_token() {
 	std::regex l("[[:alpha:]_]");
 	std::regex d("[[:digit:]]");
 	std::regex g("[[:graph:]]");
@@ -93,7 +93,7 @@ void Lexer::Lexer::get_next_token() {
 	else token.set_type(Type::none);																// Unknown token
 }
 
-void Lexer::Lexer::ignore_whitespaces() {
+void Translator::Lexer::ignore_whitespaces() {
 	do{
 		current_char = source->next_char();
 #ifdef _DEBUG
@@ -103,7 +103,7 @@ void Lexer::Lexer::ignore_whitespaces() {
 }
 
 // Type 0 is block "/*", type 1 is line "//"
-Lexer::Token Lexer::Lexer::comment(bool type) {
+Translator::Token Translator::Lexer::comment(bool type) {
 	Token tmp;
 	if(type) source->next_line();
 	else {
@@ -118,7 +118,7 @@ Lexer::Token Lexer::Lexer::comment(bool type) {
 	return tmp;
 }
 
-Lexer::Token Lexer::Lexer::get_literals_token() {
+Translator::Token Translator::Lexer::get_literals_token() {
 	std::regex d("[[:digit:]]");
 	std::regex l("[[:alpha:]_]");
 
@@ -150,14 +150,14 @@ Lexer::Token Lexer::Lexer::get_literals_token() {
 	return tmp;
 }
 
-Lexer::Token Lexer::Lexer::get_string_token() {
+Translator::Token Translator::Lexer::get_string_token() {
 	std::string x = "";
 	x += current_char;
 	current_char = source->next_char();
 	return get_string_token(x, current_char);
 }
 
-Lexer::Token Lexer::Lexer::get_string_token(std::string z, char curr) {
+Translator::Token Translator::Lexer::get_string_token(std::string z, char curr) {
 	std::regex p("[[:print:]]");
 
 	Token tmp;
@@ -207,7 +207,7 @@ Lexer::Token Lexer::Lexer::get_string_token(std::string z, char curr) {
 	return tmp;
 }
 
-Lexer::Token Lexer::Lexer::get_number_token() {
+Translator::Token Translator::Lexer::get_number_token() {
 	std::regex o("[0-7]");
 	std::regex d("[[:digit:]]");
 	std::regex h("[[:xdigit:]]");
@@ -287,7 +287,7 @@ Lexer::Token Lexer::Lexer::get_number_token() {
 }
 
 // Type 0 starts with '.', type 1 starts with digit
-Lexer::Token Lexer::Lexer::get_digit_token(bool type) {
+Translator::Token Translator::Lexer::get_digit_token(bool type) {
 	std::regex d("[[:digit:]]");
 	std::regex g("[;,)]");
 
@@ -335,7 +335,7 @@ Lexer::Token Lexer::Lexer::get_digit_token(bool type) {
 	return tmp;
 }
 
-Lexer::Token Lexer::Lexer::get_other_token() {
+Translator::Token Translator::Lexer::get_other_token() {
 	std::regex p("[!%&*+-/<=>|]");
 
 	Token tmp;

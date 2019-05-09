@@ -1,131 +1,131 @@
 #include <iostream>
 #include <sstream>
 #include "Lexer.h"
-#include "Semantics.h"
+#include "Parser.h"
 
-void cout_type(Lexer::Token token) {
+void cout_type(Translator::Token token) {
 	switch(token.get_type()) {
-		case Lexer::Type::ADD_ASSIGN:
+		case Translator::Type::ADD_ASSIGN:
 			std::cout << "'+='";
 			break;
-		case Lexer::Type::AND_OP:
+		case Translator::Type::AND_OP:
 			std::cout << "'&&'";
 			break;
-		case Lexer::Type::BREAK:
+		case Translator::Type::BREAK:
 			std::cout << "BREAK";
 			break;
-		case Lexer::Type::CASE:
+		case Translator::Type::CASE:
 			std::cout << "CASE";
 			break;
-		case Lexer::Type::CHAR:
+		case Translator::Type::CHAR:
 			std::cout << "CHAR";
 			break;
-		case Lexer::Type::CONSTANT:
+		case Translator::Type::CONSTANT:
 			std::cout << "CONSTANT";
 			break;
-		case Lexer::Type::DEC_OP:
+		case Translator::Type::DEC_OP:
 			std::cout << "'--'";
 			break;
-		case Lexer::Type::DEFAULT:
+		case Translator::Type::DEFAULT:
 			std::cout << "DEFAULT";
 			break;
-		case Lexer::Type::DIV_ASSIGN:
+		case Translator::Type::DIV_ASSIGN:
 			std::cout << "'/='";
 			break;
-		case Lexer::Type::DO:
+		case Translator::Type::DO:
 			std::cout << "DO";
 			break;
-		case Lexer::Type::DOUBLE:
+		case Translator::Type::DOUBLE:
 			std::cout << "DOUBLE";
 			break;
-		case Lexer::Type::ELSE:
+		case Translator::Type::ELSE:
 			std::cout << "ELSE";
 			break;
-		case Lexer::Type::ENUM:
+		case Translator::Type::ENUM:
 			std::cout << "ENUM";
 			break;
-		case Lexer::Type::eof:
+		case Translator::Type::eof:
 			std::cout << "EOF";
 			break;
-		case Lexer::Type::EQ_OP:
+		case Translator::Type::EQ_OP:
 			std::cout << "'=='";
 			break;
-		case Lexer::Type::error:
+		case Translator::Type::error:
 			std::cout << "ERROR";
 			break;
-		case Lexer::Type::FLOAT:
+		case Translator::Type::FLOAT:
 			std::cout << "FLOAT";
 			break;
-		case Lexer::Type::FOR:
+		case Translator::Type::FOR:
 			std::cout << "FOR";
 			break;
-		case Lexer::Type::GE_OP:
+		case Translator::Type::GE_OP:
 			std::cout << "'>='";
 			break;
-		case Lexer::Type::IDENTIFIER:
+		case Translator::Type::IDENTIFIER:
 			std::cout << "IDENTIFIER";
 			break;
-		case Lexer::Type::IF:
+		case Translator::Type::IF:
 			std::cout << "IF";
 			break;
-		case Lexer::Type::INC_OP:
+		case Translator::Type::INC_OP:
 			std::cout << "'++'";
 			break;
-		case Lexer::Type::INT:
+		case Translator::Type::INT:
 			std::cout << "INT";
 			break;
-		case Lexer::Type::LE_OP:
+		case Translator::Type::LE_OP:
 			std::cout << "'<='";
 			break;
-		case Lexer::Type::LONG:
+		case Translator::Type::LONG:
 			std::cout << "LONG";
 			break;
-		case Lexer::Type::MOD_ASSIGN:
+		case Translator::Type::MOD_ASSIGN:
 			std::cout << "'%='";
 			break;
-		case Lexer::Type::MUL_ASSIGN:
+		case Translator::Type::MUL_ASSIGN:
 			std::cout << "'*='";
 			break;
-		case Lexer::Type::NE_OP:
+		case Translator::Type::NE_OP:
 			std::cout << "'!='";
 			break;
-		case Lexer::Type::none:
+		case Translator::Type::none:
 			std::cout << "UNKNOWN";
 			break;
-		case Lexer::Type::OR_OP:
+		case Translator::Type::OR_OP:
 			std::cout << "'||'";
 			break;
-		case Lexer::Type::RETURN:
+		case Translator::Type::RETURN:
 			std::cout << "RETURN";
 			break;
-		case Lexer::Type::SHORT:
+		case Translator::Type::SHORT:
 			std::cout << "SHORT";
 			break;
-		case Lexer::Type::SIGNED:
+		case Translator::Type::SIGNED:
 			std::cout << "SIGNED";
 			break;
-		case Lexer::Type::STRING_LITERAL:
+		case Translator::Type::STRING_LITERAL:
 			std::cout << "STRING_LITERAL";
 			break;
-		case Lexer::Type::STRUCT:
+		case Translator::Type::STRUCT:
 			std::cout << "STRUCT";
 			break;
-		case Lexer::Type::SUB_ASSIGN:
+		case Translator::Type::SUB_ASSIGN:
 			std::cout << "'-='";
 			break;
-		case Lexer::Type::SWITCH:
+		case Translator::Type::SWITCH:
 			std::cout << "SWITCH";
 			break;
-		case Lexer::Type::TYPEDEF:
+		case Translator::Type::TYPEDEF:
 			std::cout << "TYPEDEF";
 			break;
-		case Lexer::Type::UNSIGNED:
+		case Translator::Type::UNSIGNED:
 			std::cout << "UNSIGNED";
 			break;
-		case Lexer::Type::VOID:
+		case Translator::Type::VOID:
 			std::cout << "VOID";
 			break;
-		case Lexer::Type::WHILE:
+		case Translator::Type::WHILE:
 			std::cout << "WHILE";
 			break;
 		default:
@@ -141,30 +141,30 @@ int main(int argc, char* argv[]) {
 	}
 
 	std::string fileName = argv[1];
-	Lexer::Source source(fileName);
-	Lexer::Lexer scan(&source);
-	Lexer::Semantics semantics;
-	Lexer::Token token;
-	token.set_type(Lexer::Type::none);
+	Translator::Source source(fileName);
+	Translator::Lexer scan(&source);
+	Translator::Parser parser;
+	Translator::Token token;
+	token.set_type(Translator::Type::none);
 
-	while(token.get_type() != Lexer::Type::eof) {
+	while(token.get_type() != Translator::Type::eof) {
 		scan.get_next_token();
 		token = scan.get_token();
 #ifdef _DEBUG
 		std::cout << scan.get_source()->is_new_line();
 #endif
-		if(token.get_type() != Lexer::Type::comment) {
+		if(token.get_type() != Translator::Type::comment) {
 			cout_type(token);
-			if(token.get_type() != Lexer::Type::eof) std::cout << ", ";
+			if(token.get_type() != Translator::Type::eof) std::cout << ", ";
 			if(scan.get_source()->is_new_line()) {
 				std::cout << std::endl;
 				scan.get_source()->set_new_line(false);
 			}
-			semantics.push_back(token);
+			parser.push_back(token);
 		}
 	}
 
-	for(auto i : semantics.get_tokens()) {
+	for(auto i : parser.get_tokens()) {
 		std::cout << std::endl << "________________" << std::endl;
 		cout_type(i);
 	}

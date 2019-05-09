@@ -1,6 +1,6 @@
 #include "Source.h"
 
-Lexer::Source::Source(const std::string fileName) : is_beginning(true), new_line(false), after_comment(false) {
+Translator::Source::Source(const std::string fileName) : is_beginning(true), new_line(false), after_comment(false) {
 	file.open(fileName, std::ios::in);
 
 	if(file.fail()) {
@@ -9,12 +9,12 @@ Lexer::Source::Source(const std::string fileName) : is_beginning(true), new_line
 	}
 }
 
-Lexer::Source::~Source() {
+Translator::Source::~Source() {
 	file.close();
 }
 
 // Move to the previous char; operating on one line
-int Lexer::Source::prev_char() {
+int Translator::Source::prev_char() {
 	if (current_position.cn == 0) {
 		return -1;
 	}
@@ -24,7 +24,7 @@ int Lexer::Source::prev_char() {
 }
 
 // Move to next char
-int Lexer::Source::next_char() {
+int Translator::Source::next_char() {
 	int result = 1;
 
 	if(line.length() <= current_position.cn) {
@@ -40,7 +40,7 @@ int Lexer::Source::next_char() {
 	else return EOF;
 }
 
-int Lexer::Source::next_line() {
+int Translator::Source::next_line() {
 	// Error while reading from file
 	if(file.fail()) {
 		std::cerr << "IO error" << std::endl;

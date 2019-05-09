@@ -4,7 +4,7 @@
 #include "Source.h"
 #include <string>
 
-namespace Lexer {
+namespace Translator {
 	enum class Type {
 		IDENTIFIER,
 		CONSTANT,

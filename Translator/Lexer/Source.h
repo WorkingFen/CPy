@@ -5,7 +5,7 @@
 #include <iostream>
 #include <string>
 
-namespace Lexer {
+namespace Translator {
 	struct TextPos {
 		unsigned int rn, cn, sn;               // Numer wiersza, znaku pisanego, znaku czytanego
 		TextPos(int r = 0, int c = 0, int s = 0) : rn(r), cn(c), sn(s) {}

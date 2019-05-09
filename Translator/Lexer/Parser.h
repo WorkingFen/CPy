@@ -1,16 +1,16 @@
-#ifndef SEMANTICS_H
-#define SEMANTICS_H
+#ifndef PARSER_H
+#define PARSER_H
 
 #include "Token.h"
 #include <vector>
 
-namespace Lexer {
-	class Semantics {
+namespace Translator {
+	class Parser {
 		std::vector<Token> tokens;
 
 	public:
-		Semantics() {};
-		~Semantics() {};
+		Parser() {};
+		~Parser() {};
 
 		void push_back(Token value) { tokens.push_back(value); }
 		std::vector<Token> get_tokens() { return tokens; }

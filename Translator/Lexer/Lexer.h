@@ -5,7 +5,7 @@
 #include <map>
 #include <regex>
 
-namespace Lexer {
+namespace Translator {
 	class Lexer {
 		Source* source;
 		Token token;

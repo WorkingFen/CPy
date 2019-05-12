@@ -165,10 +165,12 @@ int main(int argc, char* argv[]) {
 	}
 
 	for(auto i : parser.get_tokens()) {
-		std::cout << std::endl << "________________" << std::endl;
+		std::cout << std::endl << "____" << i.get_chars() << "______" << std::endl;
 		cout_type(i);
 	}
 	// Check semantics here
+
+	parser.start_parsing();
 
 	return 0;
 }

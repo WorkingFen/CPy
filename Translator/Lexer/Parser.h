@@ -6,65 +6,67 @@
 
 namespace Translator {
 	class Parser {
+		int current_token;
 		std::vector<Token> tokens;
 
+		bool primary_expression(int&);
+		bool postfix_expression(int&, bool);
+		bool argument_expression_list(int&);
+		bool unary_expression(int&);
+		bool unary_operator(int&);
+		bool cast_expression(int&);
+		bool multiplicative_expression(int&);
+		bool additive_expression(int&);
+		bool relational_expression(int&);
+		bool equality_expression(int&);
+		bool logical_and_expression(int&);
+		bool logical_or_expression(int&);
+		bool conditional_expression(int&);
+		bool assignment_expression(int&);
+		bool assignment_operator(int&);
+		bool expression(int&);
+		bool declaration(int&);
+		bool declaration_specifiers(int&);
+		bool init_declarator_list(int&);
+		bool init_declarator(int&);
+		bool type_specifier(int&);
+		bool struct_or_union_specifier(int&);
+		bool struct_declaration_list(int&);
+		bool specifier_qualifier_list(int&);
+		bool struct_declarator_list(int&);
+		bool struct_declarator(int&);
+		bool enum_specifier(int&);
+		bool enumerator_list(int&);
+		bool enumerator(int&);
+		bool direct_declarator(int&, bool);
+		bool parameter_list(int&);
+		bool parameter_declaration(int&);
+		bool identifier_list(int&);
+		bool type_name(int&);
+		bool direct_abstract_declarator(int&, bool);
+		bool initializer(int&);
+		bool initializer_list(int&);
+		bool statement(int&);
+		bool labeled_statement(int&);
+		bool compound_statement(int&);
+		bool declaration_list(int&);
+		bool statement_list(int&);
+		bool expression_statement(int&);
+		bool selection_statement(int&);
+		bool iteration_statement(int&);
+		bool jump_statement(int&);
+		bool translation_unit(int&);
+		bool external_declaration(int&);
+		bool function_definition(int&);
+
 	public:
-		Parser() {};
+		Parser(): current_token(0) {};
 		~Parser() {};
 
 		void push_back(Token value) { tokens.push_back(value); }
 		std::vector<Token> get_tokens() { return tokens; }
+		bool start_parsing();
 	};
-
-	bool primary_expression(Token);
-	bool postfix_expression(Token);
-	bool argument_expression_list(Token);
-	bool unary_expression(Token);
-	bool unary_operator(Token);
-	bool cast_expression(Token);
-	bool multiplicative_expression(Token);
-	bool additive_expression(Token);
-	bool relational_expression(Token);
-	bool equality_expression(Token);
-	bool logical_and_expression(Token);
-	bool logical_or_expression(Token);
-	bool conditional_expression(Token);
-	bool assignment_expression(Token);
-	bool assignment_operator(Token);
-	bool expression(Token);
-	bool declaration(Token);
-	bool declaration_specifiers(Token);
-	bool init_declarator_list(Token);
-	bool init_declarator(Token);
-	bool type_specifier(Token);
-	bool struct_or_union_specifier(Token);
-	bool struct_declaration_list(Token);
-	bool specifier_qualifier_list(Token);
-	bool struct_declarator_list(Token);
-	bool struct_declarator(Token);
-	bool enum_specifier(Token);
-	bool enumerator_list(Token);
-	bool enumerator(Token);
-	bool direct_declarator(Token);
-	bool parameter_list(Token);
-	bool parameter_declaration(Token);
-	bool identifier_list(Token);
-	bool type_name(Token);
-	bool direct_abstract_declarator(Token);
-	bool initializer(Token);
-	bool initializer_list(Token);
-	bool statement(Token);
-	bool labeled_statement(Token);
-	bool compound_statement(Token);
-	bool declaration_list(Token);
-	bool statement_list(Token);
-	bool expression_statement(Token);
-	bool selection_statement(Token);
-	bool iteration_statement(Token);
-	bool jump_statement(Token);
-	bool translation_unit(Token);
-	bool external_declaration(Token);
-	bool function_definition(Token);
 }
 
 #endif

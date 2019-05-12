@@ -202,7 +202,6 @@ direct_abstract_declarator : '(' direct_abstract_declarator ')'
 
 initializer : assignment_expression
 | '{' initializer_list '}'
-| '{' initializer_list ',' '}'
 ;
 
 initializer_list : initializer
@@ -217,8 +216,7 @@ statement : labeled_statement
 | jump_statement
 ;
 
-labeled_statement : IDENTIFIER ':' statement
-| CASE conditional_expression ':' statement
+labeled_statement : CASE conditional_expression ':' statement
 | DEFAULT ':' statement
 ;
 

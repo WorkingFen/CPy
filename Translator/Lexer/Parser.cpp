@@ -70,13 +70,23 @@ bool Translator::Parser::postfix_expression(int& curr_token, bool recursive) {		
 
 bool Translator::Parser::argument_expression_list(int& curr_token) {	// Recursive
 	int token_number = curr_token;
+	bool found = false;
 
 	if(assignment_expression(token_number)) { 
-		if(tokens[token_number].get_chars() == "," && argument_expression_list(++token_number)) { return true; }
-		return true; 
+		if(tokens[token_number].get_chars() == ",") {
+			if(argument_expression_list(++token_number)) found = true;
+			else {}																	// It will be an error
+		}
+		found = true; 
 	}
 
-	return false;
+	if(found) {
+		curr_token = token_number;
+		return true;
+	}
+	else {
+		return false;																// It will be an error (?)
+	}
 }
 
 bool Translator::Parser::unary_expression(int& curr_token) {				// Recursive
@@ -123,73 +133,133 @@ bool Translator::Parser::cast_expression(int& curr_token) {					// Recursive
 
 bool Translator::Parser::multiplicative_expression(int& curr_token) {		// Recursive
 	int token_number = curr_token;
+	bool found = false;
 
 	if(cast_expression(token_number)) {
-		if((tokens[token_number].get_chars() == "*" ||
+		if(tokens[token_number].get_chars() == "*" ||
 			tokens[token_number].get_chars() == "/" ||
-			tokens[token_number].get_chars() == "%" ) && multiplicative_expression(++token_number)) { return true; }
-		return true; 
+			tokens[token_number].get_chars() == "%") {
+			if(multiplicative_expression(++token_number)) found = true;
+			else {}																		// It will be an error
+		}
+		found = true; 
 	}
 
-	return false;
+	if(found) {
+		curr_token = token_number;
+		return true;
+	}
+	else {
+		return false;
+	}
 }
 
 bool Translator::Parser::additive_expression(int& curr_token) {				// Recursive
 	int token_number = curr_token;
+	bool found = false;
 
 	if(multiplicative_expression(token_number)) { 
-		if((tokens[token_number].get_chars() == "+" || tokens[token_number].get_chars() == "-") && additive_expression(++token_number)) { return true; }
-		return true; 
+		if(tokens[token_number].get_chars() == "+" || tokens[token_number].get_chars() == "-") {
+			if(additive_expression(++token_number)) found = true;
+			else {}																	// It will be an error
+		}
+		found = true; 
 	}
 
-	return false;
+	if(found) {
+		curr_token = token_number;
+		return true;
+	}
+	else {
+		return false;																// It will be an error (?)
+	}
 }
 
 bool Translator::Parser::relational_expression(int& curr_token) {			// Recursive
 	int token_number = curr_token;
+	bool found = false;
 
 	if(additive_expression(token_number)) { 
-		if((tokens[token_number].get_chars() == "<" || 
-			tokens[token_number].get_chars() == ">" || 
-			tokens[token_number].get_type() == Type::LE_OP || 
-			tokens[token_number].get_type() == Type::GE_OP) && relational_expression(++token_number)) {	return true; }
-		return true; 
+		if(tokens[token_number].get_chars() == "<" ||
+			tokens[token_number].get_chars() == ">" ||
+			tokens[token_number].get_type() == Type::LE_OP ||
+			tokens[token_number].get_type() == Type::GE_OP) {
+			if(relational_expression(++token_number)) found = true;
+			else {}																// It will be an error
+		}
+		found = true; 
 	}
 
-	return false;
+	if(found) {
+		curr_token = token_number;
+		return true;
+	}
+	else {
+		return false;															// It will be an error (?)
+	}
 }
 
 bool Translator::Parser::equality_expression(int& curr_token) {				// Recursive
 	int token_number = curr_token;
+	bool found = false;
 
 	if(relational_expression(token_number)) { 
-		if((tokens[token_number].get_type() == Type::EQ_OP || tokens[token_number].get_type() == Type::NE_OP) && equality_expression(++token_number)) { return true; }
-		return false; 
+		if(tokens[token_number].get_type() == Type::EQ_OP || tokens[token_number].get_type() == Type::NE_OP) {
+			if(equality_expression(++token_number)) found = true;
+			else {}																// It will be an error
+		}
+		found = true; 
 	}
 
-	return false;
+	if(found) {
+		curr_token = token_number;
+		return true;
+	}
+	else {
+		return false;															// It will be an error (?)
+	}
 }
 
 bool Translator::Parser::logical_and_expression(int& curr_token) {			// Recursive
 	int token_number = curr_token;
+	bool found = false;
 
 	if(equality_expression(token_number)) {
-		if(tokens[token_number].get_type() == Type::AND_OP && logical_and_expression(++token_number)) { return true; }
-		return true; 
+		if(tokens[token_number].get_type() == Type::AND_OP) {
+			if(logical_and_expression(++token_number)) found = true;
+			else {}																			// It will be an error
+		}
+		found = true; 
 	}
 
-	return false;
+	if(found) {
+		curr_token = token_number;
+		return true;
+	}
+	else {
+		return false;																		// It will be an error (?)
+	}
 }
 
 bool Translator::Parser::logical_or_expression(int& curr_token) {			// Recursive
 	int token_number = curr_token;
+	bool found = false;
 
 	if(logical_and_expression(token_number)) {
-		if(tokens[token_number].get_type() == Type::OR_OP && logical_or_expression(++token_number)) { return true; }
-		return true; 
+		if(tokens[token_number].get_type() == Type::OR_OP) {
+			if(logical_or_expression(++token_number)) found = true;
+			else {}															// It will be an error
+		}
+		found = true; 
 	}
 
-	return false;
+	if(found) {
+		curr_token = token_number;
+		return true;
+	}
+	else {
+		return false;														// It will be an error (?)
+	}
 }
 
 bool Translator::Parser::conditional_expression(int& curr_token) {			// Recursive
@@ -234,13 +304,23 @@ bool Translator::Parser::assignment_operator(int& curr_token) {
 
 bool Translator::Parser::expression(int& curr_token) {						// Recursive
 	int token_number = curr_token;
+	bool found = false;
 
 	if(assignment_expression(token_number)) {
-		if(tokens[token_number].get_chars() == "," && expression(++token_number)) { return true; }
-		return true; 
+		if(tokens[token_number].get_chars() == ",") {
+			if(expression(++token_number)) found = true;
+			else {}																// It will be an error
+		}
+		found = true; 
 	}
 
-	return false;
+	if(found) {
+		curr_token = token_number;
+		return true;
+	}
+	else {
+		return false;															// It will be an error (?)
+	}
 }
 
 bool Translator::Parser::declaration(int& curr_token) {
@@ -282,13 +362,23 @@ bool Translator::Parser::declaration_specifiers(int& curr_token) {						// Recur
 
 bool Translator::Parser::init_declarator_list(int& curr_token) {						// Recursive
 	int token_number = curr_token;
+	bool found = false;
 
 	if(init_declarator(token_number)) {
-		if(tokens[token_number].get_chars() == "," && init_declarator_list(++token_number)) { return true; }
-		return true; 
+		if(tokens[token_number].get_chars() == ",") {
+			if(init_declarator_list(++token_number)) found = true;
+			else {}																		// It will be an error
+		}
+		found = true; 
 	}
 
-	return false;
+	if(found) {
+		curr_token = token_number;
+		return true;
+	}
+	else {
+		return false;																	// It will be ab error (?)
+	}
 }
 
 bool Translator::Parser::init_declarator(int& curr_token) {
@@ -377,13 +467,30 @@ bool Translator::Parser::struct_or_union_specifier(int& curr_token) {
 
 bool Translator::Parser::struct_declaration_list(int& curr_token) {							// Recursive
 	int token_number = curr_token;
+	int found = 0;	// Types: 0 - nothing found, 1 - end of recursion, 2 - ends with token
 
-	if(specifier_qualifier_list(token_number) && struct_declarator_list(token_number) && tokens[token_number].get_chars() == ";") {
-		if(struct_declaration_list(++token_number)) { return true; }
-		return true; 
+	if(specifier_qualifier_list(token_number)) {
+		if(struct_declarator_list(token_number)) {
+			if(tokens[token_number].get_chars() == ";") {
+				if(struct_declaration_list(++token_number)) found = 1;
+				found = 2;
+			}
+			else {}																			// It will be an error
+		}
+		else {}																				// It will be an error
 	}
 
-	return false;
+	if(found == 2) {
+		curr_token = token_number + 1;
+		return true;
+	}
+	else if(found == 1) {
+		curr_token = token_number;
+		return true;
+	}
+	else {
+		return false;																		// It will be an error (?)
+	}
 }
 
 bool Translator::Parser::specifier_qualifier_list(int& curr_token) {						// Recursive
@@ -399,13 +506,23 @@ bool Translator::Parser::specifier_qualifier_list(int& curr_token) {						// Rec
 
 bool Translator::Parser::struct_declarator_list(int& curr_token) {							// Recursive
 	int token_number = curr_token;
+	bool found = false;
 
 	if(struct_declarator(token_number)) { 
-		if(tokens[token_number].get_chars() == "," && struct_declarator_list(++token_number)) { return true; }
-		return true; 
+		if(tokens[token_number].get_chars() == ",") {
+			if(struct_declarator_list(++token_number)) found = true;
+			else {}																			// It will be an error
+		}
+		found = true; 
 	}
 	
-	return false;
+	if(found) {
+		curr_token = token_number;
+		return true;
+	}
+	else {
+		return false;																		// It will be an error (?)
+	}
 }
 
 bool Translator::Parser::struct_declarator(int& curr_token) {
@@ -469,13 +586,23 @@ bool Translator::Parser::enum_specifier(int& curr_token) {
 
 bool Translator::Parser::enumerator_list(int& curr_token) {							// Recursive
 	int token_number = curr_token;
+	bool found = false;
 
 	if(enumerator(token_number)) { 
-		if(tokens[token_number].get_chars() == "," && enumerator_list(++token_number)) { return true; }
-		return true; 
+		if(tokens[token_number].get_chars() == ",") {
+			if(enumerator_list(++token_number)) found = true;
+			else {}																	// It will be an error
+		}
+		found = true; 
 	}
 
-	return false;
+	if(found) {
+		curr_token = token_number;
+		return true;
+	}
+	else {
+		return false;																// It will be an error (?)
+	}
 }
 
 bool Translator::Parser::enumerator(int& curr_token) {
@@ -550,13 +677,23 @@ bool Translator::Parser::direct_declarator(int& curr_token, bool recursive) {			
 
 bool Translator::Parser::parameter_list(int& curr_token) {					// Recursive
 	int token_number = curr_token;
+	bool found = false;
 
 	if(parameter_declaration(token_number)) {
-		if(tokens[token_number].get_chars() == "," && parameter_list(++token_number)) { return true; }
-		return true; 
+		if(tokens[token_number].get_chars() == ",") {
+			if(parameter_list(++token_number)) found = true;
+			else {}																// It will be an error
+		}
+		found = true; 
 	}
 
-	return false;
+	if(found) {
+		curr_token = token_number;
+		return true;
+	}
+	else {
+		return false;															// It will be an error (?)
+	}
 }
 
 bool Translator::Parser::parameter_declaration(int& curr_token) {
@@ -580,13 +717,27 @@ bool Translator::Parser::parameter_declaration(int& curr_token) {
 
 bool Translator::Parser::identifier_list(int& curr_token) {						// Recursive
 	int token_number = curr_token;
+	int found = 0;	// Types: 0 - nothing found, 1 - end of recursion, 2 - ends with token
 
 	if(tokens[token_number].get_type() == Type::IDENTIFIER) { 
-		if(tokens[token_number + 1].get_chars() == "," && identifier_list(token_number += 2)) { return true; }
-		return true; 
+		if(tokens[token_number + 1].get_chars() == ",") {
+			if(identifier_list(token_number += 2)) found = 1;
+			else {}															// It will be an error
+		}
+		found = 2;
 	}
 
-	return false;
+	if(found == 2) {
+		curr_token = token_number + 1;
+		return true;
+	}
+	else if(found == 1) {
+		curr_token = token_number;
+		return true;
+	}
+	else {
+		return false;														// It will be an error (?)
+	}
 }
 
 bool Translator::Parser::type_name(int& curr_token) {
@@ -668,13 +819,23 @@ bool Translator::Parser::initializer(int& curr_token) {
 
 bool Translator::Parser::initializer_list(int& curr_token) {			// Recursive
 	int token_number = curr_token;
+	bool found = false;
 
 	if(initializer(token_number)) { 
-		if(tokens[token_number].get_chars() == "," && initializer_list(++token_number)) { return true; }
-		return true; 
+		if(tokens[token_number].get_chars() == ",") {
+			if(initializer_list(++token_number)) found = true;
+			else {}															// It will be an error
+		}
+		found = true; 
 	}
 
-	return false;
+	if(found) {
+		curr_token = token_number;
+		return true;
+	}
+	else {
+		return false;														// It will be an error (?)
+	}
 }
 
 bool Translator::Parser::statement(int& curr_token) {
@@ -764,24 +925,38 @@ bool Translator::Parser::compound_statement(int& curr_token) {
 
 bool Translator::Parser::declaration_list(int& curr_token) {			// Recursive
 	int token_number = curr_token;
+	bool found = false;
 
 	if(declaration(token_number)) {
-		if(declaration_list(token_number)) { return true; }
-		return true; 
+		if(declaration_list(token_number)) found = true;
+		found = true; 
 	}
 
-	return false;
+	if(found) {
+		curr_token = token_number;
+		return true;
+	}
+	else {
+		return false;													// It will be an error (?)
+	}
 }
 
 bool Translator::Parser::statement_list(int& curr_token) {				// Recursive
 	int token_number = curr_token;
+	bool found = false;
 
 	if(statement(token_number)) {
-		if(statement_list(token_number)) { return true; }
-		return true; 
+		if(statement_list(token_number)) found = true;
+		found = true; 
 	}
 
-	return false;
+	if(found) {
+		curr_token = token_number;
+		return true;
+	}
+	else {
+		return false;													// It will be an error (?)
+	}
 }
 
 bool Translator::Parser::expression_statement(int& curr_token) {
@@ -950,13 +1125,20 @@ bool Translator::Parser::jump_statement(int& curr_token) {
 
 bool Translator::Parser::translation_unit(int& curr_token) {			// Recursive
 	int token_number = curr_token;
+	bool found = false;
 
 	if(external_declaration(token_number)) {
-		if(translation_unit(token_number)) { return true; }
-		return true; 
+		if(translation_unit(token_number)) found = true;
+		found = true; 
 	}
 
-	return false;
+	if(found) {
+		curr_token = token_number;
+		return true;
+	}
+	else {
+		return false;													// It will be an error (?)
+	}
 }
 
 bool Translator::Parser::external_declaration(int& curr_token) {

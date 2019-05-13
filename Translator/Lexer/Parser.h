@@ -6,7 +6,6 @@
 
 namespace Translator {
 	class Parser {
-		int current_token;
 		std::vector<Token> tokens;
 
 		bool primary_expression(int&);
@@ -60,12 +59,12 @@ namespace Translator {
 		bool function_definition(int&);
 
 	public:
-		Parser(): current_token(0) {};
+		Parser() {};
 		~Parser() {};
 
 		void push_back(Token value) { tokens.push_back(value); }
 		std::vector<Token> get_tokens() { return tokens; }
-		bool start_parsing();
+		void start_parsing();
 	};
 }
 

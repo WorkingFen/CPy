@@ -165,7 +165,12 @@ int main(int argc, char* argv[]) {
 	}
 
 	for(auto i : parser.get_tokens()) {
-		std::cout << std::endl << "____" << i.get_chars() << "______" << std::endl;
+		if(i.get_type() != Translator::Type::eof) {
+			std::cout << std::endl << "____" << i.get_chars() << "______" << std::endl;
+		}
+		else {
+			std::cout << std::endl << "__________" << std::endl;
+		}
 		cout_type(i);
 	}
 	// Check semantics here

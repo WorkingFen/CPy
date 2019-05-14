@@ -5,9 +5,8 @@ void Translator::Parser::start_parsing() {
 
 	std::cout << std::endl << __func__;
 
-	while(tokens[token_number].get_type() != Type::eof) {
-		if(!translation_unit(token_number)) break;					// It will be an error
-	}
+	if(!translation_unit(token_number)) exit(-1);					// It will be an error
+
 }
 
 bool Translator::Parser::primary_expression(int& curr_token) {
@@ -29,7 +28,7 @@ bool Translator::Parser::primary_expression(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number + 1;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -40,26 +39,26 @@ bool Translator::Parser::primary_expression(int& curr_token) {
 
 bool Translator::Parser::postfix_expression(int& curr_token, bool recursive) {			// Recursive
 	int token_number = curr_token;
-	int found = 0;	// Types: 0 - nothing found, 1 - found function, 2 - found token, 3 - found two tokens
+	bool found = false;
 
 	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
 
 	if(!recursive) {
 		if(primary_expression(token_number)) {
-			if(postfix_expression(token_number, true)) found = 1;
-			found = 1;
+			if(postfix_expression(token_number, true)) found = true;
+			found = true;
 		}
 	}
 	else {
 		if(tokens[token_number].get_chars() == "(") {
 			if(tokens[token_number + 1].get_chars() == ")") {
-				if(postfix_expression(token_number += 2, true)) found = 1;
-				found = 3;
+				if(postfix_expression(token_number += 2, true)) found = true;
+				found = true;
 			}
 			else if(argument_expression_list(++token_number)) {
 				if(tokens[token_number].get_chars() == ")") {
-					if(postfix_expression(++token_number, true)) found = 1;
-					found = 2;
+					if(postfix_expression(++token_number, true)) found = true;
+					found = true;
 				}
 				else {}																	// It will be an error
 			}
@@ -67,24 +66,24 @@ bool Translator::Parser::postfix_expression(int& curr_token, bool recursive) {		
 		}
 		else if(tokens[token_number].get_chars() == ".") {
 			if(tokens[token_number + 1].get_type() == Type::IDENTIFIER) {
-				if(postfix_expression(token_number += 2, true)) found = 1;
-				found = 3;
+				if(postfix_expression(token_number += 2, true)) found = true;
+				found = true;
 			}
 			else {}																		// It will be an error
 		}
 		else if(tokens[token_number].get_type() == Type::INC_OP) {
-			if(postfix_expression(++token_number, true)) found = 1;
-			found = 2;
+			if(postfix_expression(++token_number, true)) found = true;
+			found = true;
 		}
 		else if(tokens[token_number].get_type() == Type::DEC_OP) {
-			if(postfix_expression(++token_number, true)) found = 1;
-			found = 2;
+			if(postfix_expression(++token_number, true)) found = true;
+			found = true;
 		}
 		else if(tokens[token_number].get_chars() == "[") {
 			if(expression(++token_number)) {
 				if(tokens[token_number].get_chars() == "]") {
-					if(postfix_expression(++token_number, true)) found = 1;
-					found = 2;
+					if(postfix_expression(++token_number, true)) found = true;
+					found = true;
 				}
 				else {}																	// It will be an error
 			}
@@ -93,8 +92,8 @@ bool Translator::Parser::postfix_expression(int& curr_token, bool recursive) {		
 	}
 
 	if(found) {
-		curr_token = token_number + found - 1;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		curr_token = token_number;
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -119,7 +118,7 @@ bool Translator::Parser::argument_expression_list(int& curr_token) {	// Recursiv
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -146,7 +145,7 @@ bool Translator::Parser::unary_expression(int& curr_token) {				// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -168,7 +167,7 @@ bool Translator::Parser::unary_operator(int& curr_token) {
 
 	if(found) {
 		curr_token++;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -197,7 +196,7 @@ bool Translator::Parser::cast_expression(int& curr_token) {					// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -224,7 +223,7 @@ bool Translator::Parser::multiplicative_expression(int& curr_token) {		// Recurs
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -249,7 +248,7 @@ bool Translator::Parser::additive_expression(int& curr_token) {				// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -277,7 +276,7 @@ bool Translator::Parser::relational_expression(int& curr_token) {			// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -302,7 +301,7 @@ bool Translator::Parser::equality_expression(int& curr_token) {				// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -327,7 +326,7 @@ bool Translator::Parser::logical_and_expression(int& curr_token) {			// Recursiv
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -352,7 +351,7 @@ bool Translator::Parser::logical_or_expression(int& curr_token) {			// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -383,7 +382,7 @@ bool Translator::Parser::conditional_expression(int& curr_token) {			// Recursiv
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -409,7 +408,7 @@ bool Translator::Parser::assignment_expression(int& curr_token) {			// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -433,7 +432,7 @@ bool Translator::Parser::assignment_operator(int& curr_token) {
 
 	if(found) {
 		curr_token++;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -458,7 +457,7 @@ bool Translator::Parser::expression(int& curr_token) {						// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -484,7 +483,7 @@ bool Translator::Parser::declaration(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number + 1;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -510,7 +509,7 @@ bool Translator::Parser::declaration_specifiers(int& curr_token) {						// Recur
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -535,7 +534,7 @@ bool Translator::Parser::init_declarator_list(int& curr_token) {						// Recursi
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -560,7 +559,7 @@ bool Translator::Parser::init_declarator(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -589,12 +588,12 @@ bool Translator::Parser::type_specifier(int& curr_token) {
 
 	if(found == 2) {
 		curr_token++;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else if(found == 1) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -632,7 +631,7 @@ bool Translator::Parser::struct_or_union_specifier(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number + found;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -643,29 +642,24 @@ bool Translator::Parser::struct_or_union_specifier(int& curr_token) {
 
 bool Translator::Parser::struct_declaration_list(int& curr_token) {							// Recursive
 	int token_number = curr_token;
-	int found = 0;	// Types: 0 - nothing found, 1 - end of recursion, 2 - ends with token
+	bool found = true;
 
 	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
 
 	if(specifier_qualifier_list(token_number)) {
 		if(struct_declarator_list(token_number)) {
 			if(tokens[token_number].get_chars() == ";") {
-				if(struct_declaration_list(++token_number)) found = 1;
-				found = 2;
+				if(struct_declaration_list(++token_number)) found = true;
+				found = true;
 			}
 			else {}																			// It will be an error
 		}
 		else {}																				// It will be an error
 	}
 
-	if(found == 2) {
-		curr_token = token_number + 1;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
-		return true;
-	}
-	else if(found == 1) {
+	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -687,7 +681,7 @@ bool Translator::Parser::specifier_qualifier_list(int& curr_token) {						// Rec
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -712,7 +706,7 @@ bool Translator::Parser::struct_declarator_list(int& curr_token) {							// Recu
 	
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -741,7 +735,7 @@ bool Translator::Parser::struct_declarator(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -779,7 +773,7 @@ bool Translator::Parser::enum_specifier(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number + found;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -804,7 +798,7 @@ bool Translator::Parser::enumerator_list(int& curr_token) {							// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -827,14 +821,9 @@ bool Translator::Parser::enumerator(int& curr_token) {
 		found = 2;
 	}
 
-	if(found == 2) {
-		curr_token = token_number + 1;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
-		return true;
-	}
-	else if(found == 1) {
-		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+	if(found) {
+		curr_token = token_number + found - 1;
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -909,7 +898,7 @@ bool Translator::Parser::direct_declarator(int& curr_token, bool recursive) {			
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -934,7 +923,7 @@ bool Translator::Parser::parameter_list(int& curr_token) {					// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -957,7 +946,7 @@ bool Translator::Parser::parameter_declaration(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -980,14 +969,9 @@ bool Translator::Parser::identifier_list(int& curr_token) {						// Recursive
 		found = 2;
 	}
 
-	if(found == 2) {
-		curr_token = token_number + 1;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
-		return true;
-	}
-	else if(found == 1) {
-		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+	if(found) {
+		curr_token = token_number + found - 1;
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -1009,7 +993,7 @@ bool Translator::Parser::type_name(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -1020,7 +1004,7 @@ bool Translator::Parser::type_name(int& curr_token) {
 
 bool Translator::Parser::direct_abstract_declarator(int& curr_token, bool recursive) {								// Recursive
 	int token_number = curr_token;
-	int found = 0;	// Types: 0 - nothing found, 1 - found function, 2 - found token, 3 - found two tokens
+	bool found = false;
 
 	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
 
@@ -1028,8 +1012,8 @@ bool Translator::Parser::direct_abstract_declarator(int& curr_token, bool recurs
 		if(!recursive) {
 			if(direct_abstract_declarator(++token_number, false)) {
 				if(tokens[token_number].get_chars() == ")") {
-					if(direct_abstract_declarator(++token_number, true)) found = 1;
-					found = 2;
+					if(direct_abstract_declarator(++token_number, true)) found = true;
+					found = true;
 				}
 				else {}																		// It will be an error
 			}
@@ -1037,13 +1021,13 @@ bool Translator::Parser::direct_abstract_declarator(int& curr_token, bool recurs
 		}
 		else {
 			if(tokens[token_number + 1].get_chars() == ")") {
-				if(direct_abstract_declarator(token_number += 2, true)) found = 1;
-				found = 3;
+				if(direct_abstract_declarator(token_number += 2, true)) found = true;
+				found = true;
 			}
 			else if(parameter_list(++token_number)) {
 				if(tokens[token_number].get_chars() == ")") {
-					if(direct_abstract_declarator(++token_number, true)) found = 1;
-					found = 2;
+					if(direct_abstract_declarator(++token_number, true)) found = true;
+					found = true;
 				}
 				else {}																		// It will be an error
 			}
@@ -1052,13 +1036,13 @@ bool Translator::Parser::direct_abstract_declarator(int& curr_token, bool recurs
 	}
 	else if(tokens[token_number].get_chars() == "[") {
 		if(tokens[token_number + 1].get_chars() == "]") {
-			if(direct_abstract_declarator(token_number += 2, true)) found = 1;
-			found = 3;
+			if(direct_abstract_declarator(token_number += 2, true)) found = true;
+			found = true;
 		}
 		else if(conditional_expression(++token_number)) {
 			if(tokens[token_number].get_chars() == "]") {
-				if(direct_abstract_declarator(++token_number, true)) found = 1;
-				found = 2;
+				if(direct_abstract_declarator(++token_number, true)) found = true;
+				found = true;
 			}
 			else {}																			// It will be an error
 		}
@@ -1066,8 +1050,8 @@ bool Translator::Parser::direct_abstract_declarator(int& curr_token, bool recurs
 	}
 
 	if(found) {
-		curr_token = token_number + found - 1;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		curr_token = token_number;
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -1091,14 +1075,9 @@ bool Translator::Parser::initializer(int& curr_token) {
 		else {}																			// It will be an error
 	}
 
-	if(found == 2) {
-		curr_token = token_number + 1;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
-		return true;
-	}
-	else if(found == 1) {
-		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+	if(found) {
+		curr_token = token_number + found - 1;
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -1123,7 +1102,7 @@ bool Translator::Parser::initializer_list(int& curr_token) {			// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -1147,7 +1126,7 @@ bool Translator::Parser::statement(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -1182,7 +1161,7 @@ bool Translator::Parser::labeled_statement(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -1220,7 +1199,7 @@ bool Translator::Parser::compound_statement(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number + found;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -1242,7 +1221,7 @@ bool Translator::Parser::declaration_list(int& curr_token) {			// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -1264,7 +1243,7 @@ bool Translator::Parser::statement_list(int& curr_token) {				// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -1287,7 +1266,7 @@ bool Translator::Parser::expression_statement(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number + 1;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -1337,7 +1316,7 @@ bool Translator::Parser::selection_statement(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -1410,12 +1389,12 @@ bool Translator::Parser::iteration_statement(int& curr_token) {
 
 	if(found == 2) {
 		curr_token = token_number + 2;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else if(found == 1) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -1445,7 +1424,7 @@ bool Translator::Parser::jump_statement(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number + found;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -1467,7 +1446,7 @@ bool Translator::Parser::translation_unit(int& curr_token) {			// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -1487,7 +1466,7 @@ bool Translator::Parser::external_declaration(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {
@@ -1524,7 +1503,7 @@ bool Translator::Parser::function_definition(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
 		return true;
 	}
 	else {

@@ -33,7 +33,7 @@ bool Translator::Parser::primary_expression(int& curr_token) {
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;												// It will be an error (?)
 	}
 }
@@ -98,7 +98,7 @@ bool Translator::Parser::postfix_expression(int& curr_token, bool recursive) {		
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;
 	}
 }
@@ -123,7 +123,7 @@ bool Translator::Parser::argument_expression_list(int& curr_token) {	// Recursiv
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																// It will be an error (?)
 	}
 }
@@ -150,7 +150,7 @@ bool Translator::Parser::unary_expression(int& curr_token) {				// Recursive
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;														// It will be an error (?)
 	}
 }
@@ -172,7 +172,7 @@ bool Translator::Parser::unary_operator(int& curr_token) {
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;														// It will be an error (?)
 	}
 }
@@ -201,7 +201,7 @@ bool Translator::Parser::cast_expression(int& curr_token) {					// Recursive
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																// It will be an error (?)
 	}
 }
@@ -228,7 +228,7 @@ bool Translator::Parser::multiplicative_expression(int& curr_token) {		// Recurs
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;
 	}
 }
@@ -253,7 +253,7 @@ bool Translator::Parser::additive_expression(int& curr_token) {				// Recursive
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																// It will be an error (?)
 	}
 }
@@ -281,7 +281,7 @@ bool Translator::Parser::relational_expression(int& curr_token) {			// Recursive
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;															// It will be an error (?)
 	}
 }
@@ -306,7 +306,7 @@ bool Translator::Parser::equality_expression(int& curr_token) {				// Recursive
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;															// It will be an error (?)
 	}
 }
@@ -331,7 +331,7 @@ bool Translator::Parser::logical_and_expression(int& curr_token) {			// Recursiv
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																		// It will be an error (?)
 	}
 }
@@ -356,7 +356,7 @@ bool Translator::Parser::logical_or_expression(int& curr_token) {			// Recursive
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;														// It will be an error (?)
 	}
 }
@@ -387,7 +387,7 @@ bool Translator::Parser::conditional_expression(int& curr_token) {			// Recursiv
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																// It will be an error (?)
 	}
 }
@@ -413,7 +413,7 @@ bool Translator::Parser::assignment_expression(int& curr_token) {			// Recursive
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																// It will be an error (?)
 	}
 }
@@ -437,7 +437,7 @@ bool Translator::Parser::assignment_operator(int& curr_token) {
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;														// It will be an error (?)
 	}
 }
@@ -462,7 +462,7 @@ bool Translator::Parser::expression(int& curr_token) {						// Recursive
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;															// It will be an error (?)
 	}
 }
@@ -488,7 +488,7 @@ bool Translator::Parser::declaration(int& curr_token) {
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;														// It will be an error (?)
 	}
 }
@@ -514,7 +514,7 @@ bool Translator::Parser::declaration_specifiers(int& curr_token) {						// Recur
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;															// It will be an error (?)
 	}
 }
@@ -539,7 +539,7 @@ bool Translator::Parser::init_declarator_list(int& curr_token) {						// Recursi
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																	// It will be ab error (?)
 	}
 }
@@ -564,7 +564,7 @@ bool Translator::Parser::init_declarator(int& curr_token) {
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																	// It will be an error (?)
 	}
 }
@@ -598,7 +598,7 @@ bool Translator::Parser::type_specifier(int& curr_token) {
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																	// It will be an error (?)
 	}
 }
@@ -636,7 +636,7 @@ bool Translator::Parser::struct_or_union_specifier(int& curr_token) {
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																		// It will be an error (?)
 	}
 }
@@ -669,7 +669,7 @@ bool Translator::Parser::struct_declaration_list(int& curr_token) {							// Rec
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																		// It will be an error (?)
 	}
 }
@@ -691,7 +691,7 @@ bool Translator::Parser::specifier_qualifier_list(int& curr_token) {						// Rec
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;															// It will be an error (?)
 	}
 }
@@ -716,7 +716,7 @@ bool Translator::Parser::struct_declarator_list(int& curr_token) {							// Recu
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																		// It will be an error (?)
 	}
 }
@@ -745,7 +745,7 @@ bool Translator::Parser::struct_declarator(int& curr_token) {
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;															// It will be an error (?)
 	}
 }
@@ -783,7 +783,7 @@ bool Translator::Parser::enum_specifier(int& curr_token) {
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																	// It will be an error (?)
 	}
 }
@@ -808,7 +808,7 @@ bool Translator::Parser::enumerator_list(int& curr_token) {							// Recursive
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																// It will be an error (?)
 	}
 }
@@ -838,27 +838,27 @@ bool Translator::Parser::enumerator(int& curr_token) {
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																	// It will be an error (?)
 	}
 }
 
 bool Translator::Parser::direct_declarator(int& curr_token, bool recursive) {							// Recursive
 	int token_number = curr_token;
-	int found = 0;	// Types: 0 - nothing found, 1 - found function, 2 - found token, 3 - found two tokens
+	bool found = false;
 
 	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
 
 	if(!recursive) {
 		if(tokens[token_number].get_type() == Type::IDENTIFIER) {
-			if(direct_declarator(++token_number, true)) found = 1;
-			found = 2;
+			if(direct_declarator(++token_number, true)) found = true;
+			found = true;
 		}
 		else if(tokens[token_number].get_chars() == "(") {
 			if(direct_declarator(++token_number, false)) {
 				if(tokens[token_number].get_chars() == ")") {
-					if(direct_declarator(++token_number, true)) found = 1;
-					found = 2;
+					if(direct_declarator(++token_number, true)) found = true;
+					found = true;
 				}
 				else {}																		// It will be an error
 			}
@@ -868,13 +868,13 @@ bool Translator::Parser::direct_declarator(int& curr_token, bool recursive) {			
 	else {
 		if(tokens[token_number].get_chars() == "[") {
 			if(tokens[token_number + 1].get_chars() == "]") {
-				if(direct_declarator(token_number += 2, true)) found = 1;
-				found = 3;
+				if(direct_declarator(token_number += 2, true)) found = true;
+				found = true;
 			}
 			else if(conditional_expression(++token_number)) {
 				if(tokens[token_number].get_chars() == "]") {
-					if(direct_declarator(++token_number, true)) found = 1;
-					found = 2;
+					if(direct_declarator(++token_number, true)) found = true;
+					found = true;
 				}
 				else {}																		// It will be an error
 			}
@@ -882,13 +882,13 @@ bool Translator::Parser::direct_declarator(int& curr_token, bool recursive) {			
 		}
 		else if(tokens[token_number].get_chars() == "(") {
 			if(tokens[token_number + 1].get_chars() == ")") {
-				if(direct_declarator(token_number += 2, true)) found = 1;
-				found = 3;
+				if(direct_declarator(token_number += 2, true)) found = true;
+				found = true;
 			}
 			else if(parameter_list(++token_number)) {
 				if(tokens[token_number].get_chars() == ")") {
-					if(direct_declarator(++token_number, true)) found = 1;
-					found = 2;
+					if(direct_declarator(++token_number, true)) found = true;
+					found = true;
 				}
 				else {}																		// It will be an error
 			}
@@ -897,8 +897,8 @@ bool Translator::Parser::direct_declarator(int& curr_token, bool recursive) {			
 				token_number = curr_token;
 				if(identifier_list(++token_number)) {
 					if(tokens[token_number].get_chars() == ")") {
-						if(direct_declarator(++token_number, true)) found = 1;
-						found = 2;
+						if(direct_declarator(++token_number, true)) found = true;
+						found = true;
 					}
 					else {}																	// It will be an error
 				}
@@ -908,12 +908,12 @@ bool Translator::Parser::direct_declarator(int& curr_token, bool recursive) {			
 	}
 
 	if(found) {
-		curr_token = token_number + found - 1;
+		curr_token = token_number;
 		if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																		// It will be an error (?)
 	}
 }
@@ -938,7 +938,7 @@ bool Translator::Parser::parameter_list(int& curr_token) {					// Recursive
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;															// It will be an error (?)
 	}
 }
@@ -961,7 +961,7 @@ bool Translator::Parser::parameter_declaration(int& curr_token) {
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;															// It will be an error (?)
 	}
 }
@@ -991,7 +991,7 @@ bool Translator::Parser::identifier_list(int& curr_token) {						// Recursive
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;														// It will be an error (?)
 	}
 }
@@ -1013,7 +1013,7 @@ bool Translator::Parser::type_name(int& curr_token) {
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																	// It will be an error (?)
 	}
 }
@@ -1071,7 +1071,7 @@ bool Translator::Parser::direct_abstract_declarator(int& curr_token, bool recurs
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																		// It will be an error (?)
 	}
 }
@@ -1102,7 +1102,7 @@ bool Translator::Parser::initializer(int& curr_token) {
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																	// It will be an error (?)
 	}
 }
@@ -1127,7 +1127,7 @@ bool Translator::Parser::initializer_list(int& curr_token) {			// Recursive
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;														// It will be an error (?)
 	}
 }
@@ -1151,7 +1151,7 @@ bool Translator::Parser::statement(int& curr_token) {
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;														// It will be an error (?)
 	}
 }
@@ -1186,7 +1186,7 @@ bool Translator::Parser::labeled_statement(int& curr_token) {
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;															// It will be an error (?)
 	}
 }
@@ -1224,7 +1224,7 @@ bool Translator::Parser::compound_statement(int& curr_token) {
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																// It will be an error (?)
 	}
 }
@@ -1246,7 +1246,7 @@ bool Translator::Parser::declaration_list(int& curr_token) {			// Recursive
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;													// It will be an error (?)
 	}
 }
@@ -1268,7 +1268,7 @@ bool Translator::Parser::statement_list(int& curr_token) {				// Recursive
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;													// It will be an error (?)
 	}
 }
@@ -1291,7 +1291,7 @@ bool Translator::Parser::expression_statement(int& curr_token) {
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;														// It will be an error (?)
 	}
 }
@@ -1341,7 +1341,7 @@ bool Translator::Parser::selection_statement(int& curr_token) {
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																// It will be an error (?)
 	}
 }
@@ -1419,7 +1419,7 @@ bool Translator::Parser::iteration_statement(int& curr_token) {
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																	// It will be an error (?)
 	}
 }
@@ -1449,7 +1449,7 @@ bool Translator::Parser::jump_statement(int& curr_token) {
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;													// It will be an error (?)
 	}
 }
@@ -1471,7 +1471,7 @@ bool Translator::Parser::translation_unit(int& curr_token) {			// Recursive
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;													// It will be an error (?)
 	}
 }
@@ -1491,7 +1491,7 @@ bool Translator::Parser::external_declaration(int& curr_token) {
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;												// It will be an error (?)
 	}
 }
@@ -1528,7 +1528,7 @@ bool Translator::Parser::function_definition(int& curr_token) {
 		return true;
 	}
 	else {
-		std::cout << " " << "X";
+		std::cout << std::endl << "X: " << __func__;
 		return false;																	// It will be an error (?)
 	}
 }

@@ -136,7 +136,7 @@ void cout_type(Translator::Token token) {
 
 int main(int argc, char* argv[]) {
 	if(argc < 2) {
-		std::cerr << "You should give a proper .txt file";
+		std::cerr << "You should give a proper text file";
 		return -1;
 	}
 
@@ -146,6 +146,8 @@ int main(int argc, char* argv[]) {
 	Translator::Parser parser;
 	Translator::Token token;
 	token.set_type(Translator::Type::none);
+
+	std::cout << "##### LEXER #####" << std::endl << std::endl;
 
 	while(token.get_type() != Translator::Type::eof) {
 		scan.get_next_token();
@@ -164,7 +166,7 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-	for(auto i : parser.get_tokens()) {
+	/*for(auto i : parser.get_tokens()) {
 		if(i.get_type() != Translator::Type::eof) {
 			std::cout << std::endl << "____" << i.get_chars() << "______" << std::endl;
 		}
@@ -172,10 +174,14 @@ int main(int argc, char* argv[]) {
 			std::cout << std::endl << "__________" << std::endl;
 		}
 		cout_type(i);
-	}
+	}*/
 	// Check semantics here
 
+	std::cout << std::endl << std::endl << "##### PARSER #####" << std::endl;
+
 	parser.start_parsing();
+	std::cout << std::endl << std::endl << "### Drzewo skladniowe ###" << std::endl << std::endl;
+	parser.get_root().read_node(0);
 
 	return 0;
 }

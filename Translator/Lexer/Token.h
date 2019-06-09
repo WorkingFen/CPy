@@ -47,6 +47,7 @@ namespace Translator {
 		comment,
 		other,
 		none,
+		parsing,
 		eof,
 		error
 	};
@@ -57,7 +58,7 @@ namespace Translator {
 
 	public:
 		Token() : type(Type::eof) {}
-		~Token() {};
+		Token(Type t) : type(t) {}
 
 		Type get_type() const { return type; }
 		void set_type(Type setType) { type = setType; }

@@ -1,0 +1,65 @@
+##### LEXER #####
+
+INT, IDENTIFIER, '(', ')', '{', 
+RETURN, CONSTANT, ';', 
+'}', EOF
+____int______
+INT
+____main______
+IDENTIFIER
+____(______
+'('
+____)______
+')'
+____{______
+'{'
+____return______
+RETURN
+____0______
+CONSTANT
+____;______
+';'
+____}______
+'}'
+__________
+EOF
+
+##### PARSER #####
+
+Parsing finished
+
+### Drzewo skladniowe ###
+
+translation_unit
+  external_declaration
+    function_definition
+      declaration_specifiers
+        type_specifier
+..........int
+      direct_declarator
+........main
+        direct_declarator
+..........(
+..........)
+      compound_statement
+........{
+        statement_list
+          statement
+            jump_statement
+..............return
+              expression
+                assignment_expression
+                  conditional_expression
+                    logical_or_expression
+                      logical_and_expression
+                        equality_expression
+                          relational_expression
+                            additive_expression
+                              multiplicative_expression
+                                cast_expression
+                                  unary_expression
+                                    postfix_expression
+                                      primary_expression
+........................................0
+..............;
+........}

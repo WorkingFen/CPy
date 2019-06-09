@@ -14,12 +14,11 @@ namespace Translator {
 
 	public:
 		Lexer(Source*);
-		~Lexer() {};
 
-		Token get_token() { return token; }
+		Token get_token() const { return token; }
 		void get_next_token();
 		void ignore_whitespaces();
-		Source* get_source() { return source; }
+		Source* get_source() const { return source; }
 
 		Token comment(bool type);
 		Token get_literals_token();

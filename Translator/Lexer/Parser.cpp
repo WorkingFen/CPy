@@ -1,63 +1,115 @@
 #include "Parser.h"
 
-void Translator::Parser::start_parsing() {
-	int token_number = 0;
-
-	std::cout << std::endl << __func__;
-
-	if(!translation_unit(token_number)) exit(-1);					// It will be an error
-
+void Translator::Parser::func_log(int tn, const char* func) {
+#ifdef _DEBUG
+	std::cout << std::endl << tn << ": " << tokens[tn].get_chars() << " -> " << func;
+#endif
 }
 
-bool Translator::Parser::primary_expression(int& curr_token) {
+//bool Translator::Parser::is_curr_token(int tn, std::string s) {
+//	return tokens[tn].get_chars() == s;
+//}
+//
+//bool Translator::Parser::is_curr_token(int tn, Type t) {
+//	return tokens[tn].get_type() == t;
+//}
+
+void Translator::Parser::start_parsing() {
+	// std::cout << std::endl << __func__;
+
+	try {
+		root = translation_unit(0);
+	}
+	catch(Parser_Exception e) {
+		std::cerr << e.what() << std::endl;
+	}
+	std::cout << std::endl << "Parsing finished";
+}
+
+Translator::Node Translator::Parser::primary_expression(int& curr_token) {
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(tokens[token_number].get_type() == Type::IDENTIFIER)  found = true;
-	else if(tokens[token_number].get_type() == Type::CONSTANT) found = true;
-	else if(tokens[token_number].get_type() == Type::STRING_LITERAL) found = true;
-	else if(tokens[token_number].get_chars() == "(") {
-		if(expression(++token_number)) {
-			if(tokens[token_number].get_chars() == ")") found = true;
-			else {}													// It will be an error
+	func_log(token_number, __func__);
+
+	switch(tokens[token_number].get_type()) {
+		case Type::IDENTIFIER:
+		case Type::CONSTANT:
+		case Type::STRING_LITERAL:
+			p_node.push_back(Node(tokens[token_number], __func__));
+			found = true;
+			break;
+		default: {
+			if(tokens[token_number].get_chars() == "(") {
+				p_node.push_back(Node(tokens[token_number], __func__));
+				if((result = expression(++token_number)).get_type() != Type::none) {
+					p_node.push_back(result);
+					if(tokens[token_number].get_chars() == ")") {
+						p_node.push_back(Node(tokens[token_number], __func__));
+						found = true;
+					}
+					else {}													// It will be an error
+				}
+				else {}														// It will be an error
+			}
+			break;
 		}
-		else {}														// It will be an error
 	}
 
 	if(found) {
 		curr_token = token_number + 1;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;												// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);												// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::postfix_expression(int& curr_token, bool recursive) {			// Recursive
+Translator::Node Translator::Parser::postfix_expression(int& curr_token, bool recursive) {			// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
+
+	func_log(token_number, __func__);
 
 	if(!recursive) {
-		if(primary_expression(token_number)) {
-			if(postfix_expression(token_number, true)) found = true;
+		if((result = primary_expression(token_number)).get_type() != Type::none) {
+			p_node.push_back(result);
+			if((result = postfix_expression(token_number, true)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			found = true;
 		}
 	}
 	else {
 		if(tokens[token_number].get_chars() == "(") {
+			p_node.push_back(Node(tokens[token_number], __func__));
 			if(tokens[token_number + 1].get_chars() == ")") {
-				if(postfix_expression(token_number += 2, true)) found = true;
+				p_node.push_back(Node(tokens[token_number + 1], __func__));
+				if((result = postfix_expression(token_number += 2, true)).get_type() != Type::none) {
+					p_node.push_back(result);
+					found = true;
+				}
 				found = true;
 			}
-			else if(argument_expression_list(++token_number)) {
+			else if((result = argument_expression_list(++token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
 				if(tokens[token_number].get_chars() == ")") {
-					if(postfix_expression(++token_number, true)) found = true;
+					p_node.push_back(Node(tokens[token_number], __func__));
+					if((result = postfix_expression(++token_number, true)).get_type() != Type::none) {
+						p_node.push_back(result);
+						found = true;
+					}
 					found = true;
 				}
 				else {}																	// It will be an error
@@ -65,24 +117,43 @@ bool Translator::Parser::postfix_expression(int& curr_token, bool recursive) {		
 			else {}																		// It will be an error
 		}
 		else if(tokens[token_number].get_chars() == ".") {
+			p_node.push_back(Node(tokens[token_number], __func__));
 			if(tokens[token_number + 1].get_type() == Type::IDENTIFIER) {
-				if(postfix_expression(token_number += 2, true)) found = true;
+				p_node.push_back(Node(tokens[token_number + 1], __func__));
+				if((result = postfix_expression(token_number += 2, true)).get_type() != Type::none) {
+					p_node.push_back(result);
+					found = true;
+				}
 				found = true;
 			}
 			else {}																		// It will be an error
 		}
 		else if(tokens[token_number].get_type() == Type::INC_OP) {
-			if(postfix_expression(++token_number, true)) found = true;
+			p_node.push_back(Node(tokens[token_number], __func__));
+			if((result = postfix_expression(++token_number, true)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			found = true;
 		}
 		else if(tokens[token_number].get_type() == Type::DEC_OP) {
-			if(postfix_expression(++token_number, true)) found = true;
+			p_node.push_back(Node(tokens[token_number], __func__));
+			if((result = postfix_expression(++token_number, true)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			found = true;
 		}
 		else if(tokens[token_number].get_chars() == "[") {
-			if(expression(++token_number)) {
+			p_node.push_back(Node(tokens[token_number], __func__));
+			if((result = expression(++token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
 				if(tokens[token_number].get_chars() == "]") {
-					if(postfix_expression(++token_number, true)) found = true;
+					p_node.push_back(Node(tokens[token_number], __func__));
+					if((result = postfix_expression(++token_number, true)).get_type() != Type::none) {
+						p_node.push_back(result);
+						found = true;
+					}
 					found = true;
 				}
 				else {}																	// It will be an error
@@ -93,24 +164,33 @@ bool Translator::Parser::postfix_expression(int& curr_token, bool recursive) {		
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);
 	}
 }
 
-bool Translator::Parser::argument_expression_list(int& curr_token) {	// Recursive
+Translator::Node Translator::Parser::argument_expression_list(int& curr_token) {	// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(assignment_expression(token_number)) { 
+	func_log(token_number, __func__);
+
+	if((result = assignment_expression(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
 		if(tokens[token_number].get_chars() == ",") {
-			if(argument_expression_list(++token_number)) found = true;
+			p_node.push_back(Node(tokens[token_number], __func__));
+			if((result = argument_expression_list(++token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			else {}																	// It will be an error
 		}
 		found = true; 
@@ -118,75 +198,109 @@ bool Translator::Parser::argument_expression_list(int& curr_token) {	// Recursiv
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::unary_expression(int& curr_token) {				// Recursive
+Translator::Node Translator::Parser::unary_expression(int& curr_token) {				// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(postfix_expression(token_number, false)) found = true;
+	func_log(token_number, __func__);
+
+	if((result = postfix_expression(token_number, false)).get_type() != Type::none) {
+		p_node.push_back(result);
+		found = true;
+	}
 	else if(tokens[token_number].get_type() == Type::INC_OP || tokens[token_number].get_type() == Type::DEC_OP) {
-		if(unary_expression(++token_number)) found = true;
+		p_node.push_back(Node(tokens[token_number], __func__));
+		if((result = unary_expression(++token_number)).get_type() != Type::none) {
+			p_node.push_back(result);
+			found = true;
+		}
 		else {}																// It will be an error
 	}
-	else if(unary_operator(token_number)) {
-		if(cast_expression(token_number)) found = true;
+	else if((result = unary_operator(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		if((result = cast_expression(token_number)).get_type() != Type::none) {
+			p_node.push_back(result);
+			found = true;
+		}
 		else {}																// It will be an error
 	}
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;														// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);														// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::unary_operator(int& curr_token) {
+Translator::Node Translator::Parser::unary_operator(int& curr_token) {
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(tokens[token_number].get_chars() == "*") found = true;
-	else if(tokens[token_number].get_chars() == "+") found = true;
-	else if(tokens[token_number].get_chars() == "-") found = true;
-	else if(tokens[token_number].get_chars() == "!") found = true;
+	func_log(token_number, __func__);
+
+	std::string tokens_chars = tokens[token_number].get_chars();
+
+	if(tokens_chars == "*" || tokens_chars == "+" || tokens_chars == "-" || tokens_chars == "!") {
+		p_node.push_back(Node(tokens[token_number], __func__));
+		found = true;
+	}
 
 	if(found) {
 		curr_token++;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;														// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);														// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::cast_expression(int& curr_token) {					// Recursive
+Translator::Node Translator::Parser::cast_expression(int& curr_token) {					// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(unary_expression(token_number)) found = true;
+	func_log(token_number, __func__);
+
+	if((result = unary_expression(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		found = true;
+	}
 	else if(tokens[token_number].get_chars() == "(") {
-		if(type_name(++token_number)) {
+		p_node.push_back(Node(tokens[token_number], __func__));
+		if((result = type_name(++token_number)).get_type() != Type::none) {
+			p_node.push_back(result);
 			if(tokens[token_number].get_chars() == ")") {
-				if(cast_expression(++token_number)) found = true;
+				p_node.push_back(Node(tokens[token_number], __func__));
+				if((result = cast_expression(++token_number)).get_type() != Type::none) {
+					p_node.push_back(result);
+					found = true;
+				}
 				else {}																// It will be an error
 			}
 			else {}																	// It will be an error
@@ -196,26 +310,35 @@ bool Translator::Parser::cast_expression(int& curr_token) {					// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::multiplicative_expression(int& curr_token) {		// Recursive
+Translator::Node Translator::Parser::multiplicative_expression(int& curr_token) {		// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(cast_expression(token_number)) {
+	func_log(token_number, __func__);
+
+	if((result = cast_expression(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
 		if(tokens[token_number].get_chars() == "*" ||
 			tokens[token_number].get_chars() == "/" ||
 			tokens[token_number].get_chars() == "%") {
-			if(multiplicative_expression(++token_number)) found = true;
+			p_node.push_back(Node(tokens[token_number], __func__));
+			if((result = multiplicative_expression(++token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			else {}																		// It will be an error
 		}
 		found = true; 
@@ -223,24 +346,33 @@ bool Translator::Parser::multiplicative_expression(int& curr_token) {		// Recurs
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);
 	}
 }
 
-bool Translator::Parser::additive_expression(int& curr_token) {				// Recursive
+Translator::Node Translator::Parser::additive_expression(int& curr_token) {				// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(multiplicative_expression(token_number)) { 
+	func_log(token_number, __func__);
+
+	if((result = multiplicative_expression(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
 		if(tokens[token_number].get_chars() == "+" || tokens[token_number].get_chars() == "-") {
-			if(additive_expression(++token_number)) found = true;
+			p_node.push_back(Node(tokens[token_number], __func__));
+			if((result = additive_expression(++token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			else {}																	// It will be an error
 		}
 		found = true; 
@@ -248,27 +380,36 @@ bool Translator::Parser::additive_expression(int& curr_token) {				// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::relational_expression(int& curr_token) {			// Recursive
+Translator::Node Translator::Parser::relational_expression(int& curr_token) {			// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(additive_expression(token_number)) { 
+	func_log(token_number, __func__);
+
+	if((result = additive_expression(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
 		if(tokens[token_number].get_chars() == "<" ||
 			tokens[token_number].get_chars() == ">" ||
 			tokens[token_number].get_type() == Type::LE_OP ||
 			tokens[token_number].get_type() == Type::GE_OP) {
-			if(relational_expression(++token_number)) found = true;
+			p_node.push_back(Node(tokens[token_number], __func__));
+			if((result = relational_expression(++token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			else {}																// It will be an error
 		}
 		found = true; 
@@ -276,24 +417,33 @@ bool Translator::Parser::relational_expression(int& curr_token) {			// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;															// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);															// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::equality_expression(int& curr_token) {				// Recursive
+Translator::Node Translator::Parser::equality_expression(int& curr_token) {				// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(relational_expression(token_number)) { 
+	func_log(token_number, __func__);
+
+	if((result = relational_expression(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
 		if(tokens[token_number].get_type() == Type::EQ_OP || tokens[token_number].get_type() == Type::NE_OP) {
-			if(equality_expression(++token_number)) found = true;
+			p_node.push_back(Node(tokens[token_number], __func__));
+			if((result = equality_expression(++token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			else {}																// It will be an error
 		}
 		found = true; 
@@ -301,24 +451,33 @@ bool Translator::Parser::equality_expression(int& curr_token) {				// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;															// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);															// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::logical_and_expression(int& curr_token) {			// Recursive
+Translator::Node Translator::Parser::logical_and_expression(int& curr_token) {			// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(equality_expression(token_number)) {
+	func_log(token_number, __func__);
+
+	if((result = equality_expression(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
 		if(tokens[token_number].get_type() == Type::AND_OP) {
-			if(logical_and_expression(++token_number)) found = true;
+			p_node.push_back(Node(tokens[token_number], __func__));
+			if((result = logical_and_expression(++token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			else {}																			// It will be an error
 		}
 		found = true; 
@@ -326,24 +485,33 @@ bool Translator::Parser::logical_and_expression(int& curr_token) {			// Recursiv
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																		// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																		// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::logical_or_expression(int& curr_token) {			// Recursive
+Translator::Node Translator::Parser::logical_or_expression(int& curr_token) {			// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(logical_and_expression(token_number)) {
+	func_log(token_number, __func__);
+
+	if((result = logical_and_expression(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
 		if(tokens[token_number].get_type() == Type::OR_OP) {
-			if(logical_or_expression(++token_number)) found = true;
+			p_node.push_back(Node(tokens[token_number], __func__));
+			if((result = logical_or_expression(++token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			else {}															// It will be an error
 		}
 		found = true; 
@@ -351,26 +519,37 @@ bool Translator::Parser::logical_or_expression(int& curr_token) {			// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;														// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);														// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::conditional_expression(int& curr_token) {			// Recursive
+Translator::Node Translator::Parser::conditional_expression(int& curr_token) {			// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(logical_or_expression(token_number)) { 
+	func_log(token_number, __func__);
+
+	if((result = logical_or_expression(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
 		if(tokens[token_number].get_chars() == "?") {
-			if(expression(++token_number)) {
+			p_node.push_back(Node(tokens[token_number], __func__));
+			if((result = expression(++token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
 				if(tokens[token_number].get_chars() == ":") {
-					if(conditional_expression(++token_number)) found = true;
+					p_node.push_back(Node(tokens[token_number], __func__));
+					if((result = conditional_expression(++token_number)).get_type() != Type::none) {
+						p_node.push_back(result);
+						found = true;
+					}
 					else {}															// It will be an error
 				}
 				else {}																// It will be an error
@@ -382,25 +561,37 @@ bool Translator::Parser::conditional_expression(int& curr_token) {			// Recursiv
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::assignment_expression(int& curr_token) {			// Recursive
+Translator::Node Translator::Parser::assignment_expression(int& curr_token) {			// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(conditional_expression(token_number)) found = true;
-	else if(unary_expression(token_number)) {
-		if(assignment_operator(token_number)) {
-			if(assignment_expression(token_number)) found = true;
+	func_log(token_number, __func__);
+
+	if((result = conditional_expression(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		found = true;
+	}
+	else if((result = unary_expression(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		if((result = assignment_operator(token_number)).get_type() != Type::none) {
+			p_node.push_back(result);
+			if((result = assignment_expression(token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			else {}																	// It will be an error
 		}
 		else {}																		// It will be an error
@@ -408,48 +599,72 @@ bool Translator::Parser::assignment_expression(int& curr_token) {			// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::assignment_operator(int& curr_token) {
+Translator::Node Translator::Parser::assignment_operator(int& curr_token) {
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(tokens[token_number].get_chars() == "=") found = true;
-	else if(tokens[token_number].get_type() == Type::MUL_ASSIGN) found = true;
-	else if(tokens[token_number].get_type() == Type::DIV_ASSIGN) found = true;
-	else if(tokens[token_number].get_type() == Type::MOD_ASSIGN) found = true;
-	else if(tokens[token_number].get_type() == Type::ADD_ASSIGN) found = true;
-	else if(tokens[token_number].get_type() == Type::SUB_ASSIGN) found = true;
+	func_log(token_number, __func__);
+
+	switch(tokens[token_number].get_type()) {
+		case Type::MUL_ASSIGN:
+		case Type::DIV_ASSIGN:
+		case Type::MOD_ASSIGN:
+		case Type::ADD_ASSIGN:
+		case Type::SUB_ASSIGN:
+			p_node.push_back(Node(tokens[token_number], __func__));
+			found = true;
+			break;
+		default: {
+			if(tokens[token_number].get_chars() == "=") {
+				p_node.push_back(Node(tokens[token_number], __func__));
+				found = true;
+			}
+			break;
+		}
+	}
 
 	if(found) {
 		curr_token++;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;														// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);														// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::expression(int& curr_token) {						// Recursive
+Translator::Node Translator::Parser::expression(int& curr_token) {						// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(assignment_expression(token_number)) {
+	func_log(token_number, __func__);
+
+	if((result = assignment_expression(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
 		if(tokens[token_number].get_chars() == ",") {
-			if(expression(++token_number)) found = true;
+			p_node.push_back(Node(tokens[token_number], __func__));
+			if((result = expression(++token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			else {}																// It will be an error
 		}
 		found = true; 
@@ -457,25 +672,37 @@ bool Translator::Parser::expression(int& curr_token) {						// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;															// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);															// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::declaration(int& curr_token) {
+Translator::Node Translator::Parser::declaration(int& curr_token) {
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(declaration_specifiers(token_number)) {
-		if(tokens[token_number].get_chars() == ";") found = true;
-		else if(init_declarator_list(token_number)) {
-			if(tokens[token_number].get_chars() == ";") found = true;
+	func_log(token_number, __func__);
+
+	if((result = declaration_specifiers(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		if(tokens[token_number].get_chars() == ";") {
+			p_node.push_back(Node(tokens[token_number], __func__));
+			found = true;
+		}
+		else if((result = init_declarator_list(token_number)).get_type() != Type::none) {
+			p_node.push_back(result);
+			if(tokens[token_number].get_chars() == ";") {
+				p_node.push_back(Node(tokens[token_number], __func__));
+				found = true;
+			}
 			else {}															// It will be an error
 		}
 		else {}																// It will be an error
@@ -483,50 +710,71 @@ bool Translator::Parser::declaration(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number + 1;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;														// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);														// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::declaration_specifiers(int& curr_token) {						// Recursive
+Translator::Node Translator::Parser::declaration_specifiers(int& curr_token) {						// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
+
+	func_log(token_number, __func__);
 
 	if(tokens[token_number].get_type() == Type::TYPEDEF) {
-		if(declaration_specifiers(++token_number)) found = true;
+		p_node.push_back(Node(tokens[token_number], __func__));
+		if((result = declaration_specifiers(++token_number)).get_type() != Type::none) {
+			p_node.push_back(result);
+			found = true;
+		}
 		found = true;
 	}
-	else if(type_specifier(token_number)) {
-		if(declaration_specifiers(token_number)) found = true;
+	else if((result = type_specifier(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		if((result = declaration_specifiers(token_number)).get_type() != Type::none) {
+			p_node.push_back(result);
+			found = true;
+		}
 		found = true;
 	}
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;															// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);															// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::init_declarator_list(int& curr_token) {						// Recursive
+Translator::Node Translator::Parser::init_declarator_list(int& curr_token) {						// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(init_declarator(token_number)) {
+	func_log(token_number, __func__);
+
+	if((result = init_declarator(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
 		if(tokens[token_number].get_chars() == ",") {
-			if(init_declarator_list(++token_number)) found = true;
+			p_node.push_back(Node(tokens[token_number], __func__));
+			if((result = init_declarator_list(++token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			else {}																		// It will be an error
 		}
 		found = true; 
@@ -534,24 +782,33 @@ bool Translator::Parser::init_declarator_list(int& curr_token) {						// Recursi
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																	// It will be ab error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																	// It will be ab error (?)
 	}
 }
 
-bool Translator::Parser::init_declarator(int& curr_token) {
+Translator::Node Translator::Parser::init_declarator(int& curr_token) {
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(direct_declarator(token_number, false)) { 
+	func_log(token_number, __func__);
+
+	if((result = direct_declarator(token_number, false)).get_type() != Type::none) {
+		p_node.push_back(result);
 		if(tokens[token_number].get_chars() == "=") {
-			if(initializer(++token_number)) found = true;
+			p_node.push_back(Node(tokens[token_number], __func__));
+			if((result = initializer(++token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			else {}																		// It will be an error
 		}
 		found = true;
@@ -559,60 +816,89 @@ bool Translator::Parser::init_declarator(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																	// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																	// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::type_specifier(int& curr_token) {
+Translator::Node Translator::Parser::type_specifier(int& curr_token) {
 	int token_number = curr_token;
 	int found = 0;	// Types: 0 - nothing found, 1 - found function, 2 - found token
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(tokens[token_number].get_type() == Type::VOID) found = 2;
-	else if(tokens[token_number].get_type() == Type::CHAR) found = 2;
-	else if(tokens[token_number].get_type() == Type::SHORT) found = 2;
-	else if(tokens[token_number].get_type() == Type::INT) found = 2;
-	else if(tokens[token_number].get_type() == Type::LONG) found = 2;
-	else if(tokens[token_number].get_type() == Type::FLOAT) found = 2;
-	else if(tokens[token_number].get_type() == Type::DOUBLE) found = 2;
-	else if(tokens[token_number].get_type() == Type::SIGNED) found = 2;
-	else if(tokens[token_number].get_type() == Type::UNSIGNED) found = 2;
-	else if(struct_or_union_specifier(token_number)) found = 1;
-	else if(enum_specifier(token_number)) found = 1;
+	func_log(token_number, __func__);
+
+	switch(tokens[token_number].get_type()) {
+		case Type::VOID:
+		case Type::CHAR:
+		case Type::SHORT:
+		case Type::INT:
+		case Type::LONG:
+		case Type::FLOAT:
+		case Type::DOUBLE:
+		case Type::SIGNED:
+		case Type::UNSIGNED:
+			p_node.push_back(Node(tokens[token_number], __func__));
+			found = 2;
+			break;
+		default: {
+			if((result = struct_or_union_specifier(token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = 1;
+			}
+			else if((result = enum_specifier(token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = 1;
+			}
+			break;
+		}
+	}
 
 	if(found == 2) {
 		curr_token++;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else if(found == 1) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																	// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																	// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::struct_or_union_specifier(int& curr_token) {
+Translator::Node Translator::Parser::struct_or_union_specifier(int& curr_token) {
 	int token_number = curr_token;
 	int found = 0;	// Types: 0 - nothing found, 1 - found other token, 2 - found IDENTIFIER as last
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
+
+	func_log(token_number, __func__);
 
 	if(tokens[token_number].get_type() == Type::STRUCT) {
+		p_node.push_back(Node(tokens[token_number], __func__));
 		if(tokens[token_number + 1].get_type() == Type::IDENTIFIER) {
+			p_node.push_back(Node(tokens[token_number + 1], __func__));
 			if(tokens[token_number + 2].get_chars() == "{") {
-				if(struct_declaration_list(token_number += 3)) {
-					if(tokens[token_number].get_chars() == "}") found = 1;
+				p_node.push_back(Node(tokens[token_number + 2], __func__));
+				if((result = struct_declaration_list(token_number += 3)).get_type() != Type::none) {
+					p_node.push_back(result);
+					if(tokens[token_number].get_chars() == "}") {
+						p_node.push_back(Node(tokens[token_number], __func__));
+						found = 1;
+					}
 					else {}																	// It will be an error
 				}
 				else {}																		// It will be an error
@@ -620,8 +906,13 @@ bool Translator::Parser::struct_or_union_specifier(int& curr_token) {
 			found = 2;
 		}
 		else if(tokens[token_number + 1].get_chars() == "{") {
-			if(struct_declaration_list(token_number += 2)) {
-				if(tokens[token_number].get_chars() == "}") found = 1;
+			p_node.push_back(Node(tokens[token_number + 1], __func__));
+			if((result = struct_declaration_list(token_number += 2)).get_type() != Type::none) {
+				p_node.push_back(result);
+				if(tokens[token_number].get_chars() == "}") {
+					p_node.push_back(Node(tokens[token_number], __func__));
+					found = 1;
+				}
 				else {}																		// It will be an error
 			}
 			else {}																			// It will be an error
@@ -631,25 +922,35 @@ bool Translator::Parser::struct_or_union_specifier(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number + found;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																		// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																		// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::struct_declaration_list(int& curr_token) {							// Recursive
+Translator::Node Translator::Parser::struct_declaration_list(int& curr_token) {							// Recursive
 	int token_number = curr_token;
 	bool found = true;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(specifier_qualifier_list(token_number)) {
-		if(struct_declarator_list(token_number)) {
+	func_log(token_number, __func__);
+
+	if((result = specifier_qualifier_list(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		if((result = struct_declarator_list(token_number)).get_type() != Type::none) {
+			p_node.push_back(result);
 			if(tokens[token_number].get_chars() == ";") {
-				if(struct_declaration_list(++token_number)) found = true;
+				p_node.push_back(Node(tokens[token_number], __func__));
+				if((result = struct_declaration_list(++token_number)).get_type() != Type::none) {
+					p_node.push_back(result);
+					found = true;
+				}
 				found = true;
 			}
 			else {}																			// It will be an error
@@ -659,46 +960,63 @@ bool Translator::Parser::struct_declaration_list(int& curr_token) {							// Rec
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																		// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																		// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::specifier_qualifier_list(int& curr_token) {						// Recursive
+Translator::Node Translator::Parser::specifier_qualifier_list(int& curr_token) {						// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(type_specifier(token_number)) { 
-		if(specifier_qualifier_list(token_number)) found = true;
+	func_log(token_number, __func__);
+
+	if((result = type_specifier(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		if((result = specifier_qualifier_list(token_number)).get_type() != Type::none) {
+			p_node.push_back(result);
+			found = true;
+		}
 		found = true; 
 	}
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;															// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);															// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::struct_declarator_list(int& curr_token) {							// Recursive
+Translator::Node Translator::Parser::struct_declarator_list(int& curr_token) {							// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(struct_declarator(token_number)) { 
+	func_log(token_number, __func__);
+
+	if((result = struct_declarator(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
 		if(tokens[token_number].get_chars() == ",") {
-			if(struct_declarator_list(++token_number)) found = true;
+			p_node.push_back(Node(tokens[token_number], __func__));
+			if((result = struct_declarator_list(++token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			else {}																			// It will be an error
 		}
 		found = true; 
@@ -706,55 +1024,79 @@ bool Translator::Parser::struct_declarator_list(int& curr_token) {							// Recu
 	
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																		// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																		// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::struct_declarator(int& curr_token) {
+Translator::Node Translator::Parser::struct_declarator(int& curr_token) {
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(direct_declarator(token_number, false)) {
+	func_log(token_number, __func__);
+
+	if((result = direct_declarator(token_number, false)).get_type() != Type::none) {
+		p_node.push_back(result);
 		if(tokens[token_number].get_chars() == ":") {
-			if(conditional_expression(++token_number)) found = true;
+			p_node.push_back(Node(tokens[token_number], __func__));
+			if((result = conditional_expression(++token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			else {}																// It will be an error
 		}
 		found = true;
 	}
 	else if(tokens[token_number].get_chars() == ":") {
-		if(conditional_expression(++token_number)) found = true;
+		p_node.push_back(Node(tokens[token_number], __func__));
+		if((result = conditional_expression(++token_number)).get_type() != Type::none) {
+			p_node.push_back(result);
+			found = true;
+		}
 		else {}																	// It will be an error
 	}
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;															// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);															// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::enum_specifier(int& curr_token) {
+Translator::Node Translator::Parser::enum_specifier(int& curr_token) {
 	int token_number = curr_token;
 	int found = 0; // Types: 0 - nothing found, 1 - found other token, 2 - found IDENTIFIER as last
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
+
+	func_log(token_number, __func__);
 
 	if(tokens[token_number].get_type() == Type::ENUM) {
+		p_node.push_back(Node(tokens[token_number], __func__));
 		if(tokens[token_number + 1].get_type() == Type::IDENTIFIER) {
+			p_node.push_back(Node(tokens[token_number + 1], __func__));
 			if(tokens[token_number + 2].get_chars() == "{") {
-				if(enumerator_list(token_number += 3)) {
-					if(tokens[token_number].get_chars() == "}") found = 1;
+				p_node.push_back(Node(tokens[token_number + 2], __func__));
+				if((result = enumerator_list(token_number += 3)).get_type() != Type::none) {
+					p_node.push_back(result);
+					if(tokens[token_number].get_chars() == "}") {
+						p_node.push_back(Node(tokens[token_number], __func__));
+						found = 1;
+					}
 					else {}																// It will be an error
 				}
 				else {}																	// It will be an error
@@ -762,8 +1104,13 @@ bool Translator::Parser::enum_specifier(int& curr_token) {
 			found = 2;
 		}
 		else if(tokens[token_number + 1].get_chars() == "{") {
-			if(enumerator_list(token_number += 2)) {
-				if(tokens[token_number].get_chars() == "}") found = 1;
+			p_node.push_back(Node(tokens[token_number + 1], __func__));
+			if((result = enumerator_list(token_number += 2)).get_type() != Type::none) {
+				p_node.push_back(result);
+				if(tokens[token_number].get_chars() == "}") {
+					p_node.push_back(Node(tokens[token_number], __func__));
+					found = 1;
+				}
 				else {}																	// It will be an error
 			}
 			else {}																		// It will be an error
@@ -773,24 +1120,33 @@ bool Translator::Parser::enum_specifier(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number + found;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																	// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																	// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::enumerator_list(int& curr_token) {							// Recursive
+Translator::Node Translator::Parser::enumerator_list(int& curr_token) {							// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(enumerator(token_number)) { 
+	func_log(token_number, __func__);
+
+	if((result = enumerator(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
 		if(tokens[token_number].get_chars() == ",") {
-			if(enumerator_list(++token_number)) found = true;
+			p_node.push_back(Node(tokens[token_number], __func__));
+			if((result = enumerator_list(++token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			else {}																	// It will be an error
 		}
 		found = true; 
@@ -798,24 +1154,33 @@ bool Translator::Parser::enumerator_list(int& curr_token) {							// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::enumerator(int& curr_token) {
+Translator::Node Translator::Parser::enumerator(int& curr_token) {
 	int token_number = curr_token;
 	int found = 0;	// Types: 0 - nothing found, 1 - found function, 2 - found token
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
+
+	func_log(token_number, __func__);
 
 	if(tokens[token_number].get_type() == Type::IDENTIFIER) {
+		p_node.push_back(Node(tokens[token_number], __func__));
 		if(tokens[token_number + 1].get_chars() == "=") {
-			if(conditional_expression(token_number += 2)) found = 1;
+			p_node.push_back(Node(tokens[token_number + 1], __func__));
+			if((result = conditional_expression(token_number += 2)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = 1;
+			}
 			else {}																		// It will be an error
 		}
 		found = 2;
@@ -823,30 +1188,44 @@ bool Translator::Parser::enumerator(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number + found - 1;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																	// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																	// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::direct_declarator(int& curr_token, bool recursive) {							// Recursive
+Translator::Node Translator::Parser::direct_declarator(int& curr_token, bool recursive) {							// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
+
+	func_log(token_number, __func__);
 
 	if(!recursive) {
 		if(tokens[token_number].get_type() == Type::IDENTIFIER) {
-			if(direct_declarator(++token_number, true)) found = true;
+			p_node.push_back(Node(tokens[token_number], __func__));
+			if((result = direct_declarator(++token_number, true)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			found = true;
 		}
 		else if(tokens[token_number].get_chars() == "(") {
-			if(direct_declarator(++token_number, false)) {
+			p_node.push_back(Node(tokens[token_number], __func__));
+			if((result = direct_declarator(++token_number, false)).get_type() != Type::none) {
+				p_node.push_back(result);
 				if(tokens[token_number].get_chars() == ")") {
-					if(direct_declarator(++token_number, true)) found = true;
+					p_node.push_back(Node(tokens[token_number], __func__));
+					if((result = direct_declarator(++token_number, true)).get_type() != Type::none) {
+						p_node.push_back(result);
+						found = true;
+					}
 					found = true;
 				}
 				else {}																		// It will be an error
@@ -856,13 +1235,23 @@ bool Translator::Parser::direct_declarator(int& curr_token, bool recursive) {			
 	}
 	else {
 		if(tokens[token_number].get_chars() == "[") {
+			p_node.push_back(Node(tokens[token_number], __func__));
 			if(tokens[token_number + 1].get_chars() == "]") {
-				if(direct_declarator(token_number += 2, true)) found = true;
+				p_node.push_back(Node(tokens[token_number + 1], __func__));
+				if((result = direct_declarator(token_number += 2, true)).get_type() != Type::none) {
+					p_node.push_back(result);
+					found = true;
+				}
 				found = true;
 			}
-			else if(conditional_expression(++token_number)) {
+			else if((result = conditional_expression(++token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
 				if(tokens[token_number].get_chars() == "]") {
-					if(direct_declarator(++token_number, true)) found = true;
+					p_node.push_back(Node(tokens[token_number], __func__));
+					if((result = direct_declarator(++token_number, true)).get_type() != Type::none) {
+						p_node.push_back(result);
+						found = true;
+					}
 					found = true;
 				}
 				else {}																		// It will be an error
@@ -870,13 +1259,23 @@ bool Translator::Parser::direct_declarator(int& curr_token, bool recursive) {			
 			else {}																			// It will be an error
 		}
 		else if(tokens[token_number].get_chars() == "(") {
+			p_node.push_back(Node(tokens[token_number], __func__));
 			if(tokens[token_number + 1].get_chars() == ")") {
-				if(direct_declarator(token_number += 2, true)) found = true;
+				p_node.push_back(Node(tokens[token_number + 1], __func__));
+				if((result = direct_declarator(token_number += 2, true)).get_type() != Type::none) {
+					p_node.push_back(result);
+					found = true;
+				}
 				found = true;
 			}
-			else if(parameter_list(++token_number)) {
+			else if((result = parameter_list(++token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
 				if(tokens[token_number].get_chars() == ")") {
-					if(direct_declarator(++token_number, true)) found = true;
+					p_node.push_back(Node(tokens[token_number], __func__));
+					if((result = direct_declarator(++token_number, true)).get_type() != Type::none) {
+						p_node.push_back(result);
+						found = true;
+					}
 					found = true;
 				}
 				else {}																		// It will be an error
@@ -884,9 +1283,14 @@ bool Translator::Parser::direct_declarator(int& curr_token, bool recursive) {			
 
 			if(!found) {
 				token_number = curr_token;
-				if(identifier_list(++token_number)) {
+				if((result = identifier_list(++token_number)).get_type() != Type::none) {
+					p_node.push_back(result);
 					if(tokens[token_number].get_chars() == ")") {
-						if(direct_declarator(++token_number, true)) found = true;
+						p_node.push_back(Node(tokens[token_number], __func__));
+						if((result = direct_declarator(++token_number, true)).get_type() != Type::none) {
+							p_node.push_back(result);
+							found = true;
+						}
 						found = true;
 					}
 					else {}																	// It will be an error
@@ -898,24 +1302,33 @@ bool Translator::Parser::direct_declarator(int& curr_token, bool recursive) {			
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																		// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																		// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::parameter_list(int& curr_token) {					// Recursive
+Translator::Node Translator::Parser::parameter_list(int& curr_token) {					// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(parameter_declaration(token_number)) {
+	func_log(token_number, __func__);
+
+	if((result = parameter_declaration(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
 		if(tokens[token_number].get_chars() == ",") {
-			if(parameter_list(++token_number)) found = true;
+			p_node.push_back(Node(tokens[token_number], __func__));
+			if((result = parameter_list(++token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			else {}																// It will be an error
 		}
 		found = true; 
@@ -923,47 +1336,67 @@ bool Translator::Parser::parameter_list(int& curr_token) {					// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;															// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);															// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::parameter_declaration(int& curr_token) {
+Translator::Node Translator::Parser::parameter_declaration(int& curr_token) {
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(declaration_specifiers(token_number)) {
-		if(direct_declarator(token_number, false)) found = true;
-		else if(direct_abstract_declarator(token_number, false)) found = true;
+	func_log(token_number, __func__);
+
+	if((result = declaration_specifiers(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		if((result = direct_declarator(token_number, false)).get_type() != Type::none) {
+			p_node.push_back(result);
+			found = true;
+		}
+		else if((result = direct_abstract_declarator(token_number, false)).get_type() != Type::none) {
+			p_node.push_back(result);
+			found = true;
+		}
 		found = true;
 	}
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;															// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);															// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::identifier_list(int& curr_token) {						// Recursive
+Translator::Node Translator::Parser::identifier_list(int& curr_token) {						// Recursive
 	int token_number = curr_token;
 	int found = 0;	// Types: 0 - nothing found, 1 - end of recursion, 2 - ends with token
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(tokens[token_number].get_type() == Type::IDENTIFIER) { 
+	func_log(token_number, __func__);
+
+	if(tokens[token_number].get_type() == Type::IDENTIFIER) {
+		p_node.push_back(Node(tokens[token_number], __func__));
 		if(tokens[token_number + 1].get_chars() == ",") {
-			if(identifier_list(token_number += 2)) found = 1;
+			p_node.push_back(Node(tokens[token_number + 1], __func__));
+			if((result = identifier_list(token_number += 2)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = 1;
+			}
 			else {}															// It will be an error
 		}
 		found = 2;
@@ -971,48 +1404,66 @@ bool Translator::Parser::identifier_list(int& curr_token) {						// Recursive
 
 	if(found) {
 		curr_token = token_number + found - 1;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;														// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);														// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::type_name(int& curr_token) {
+Translator::Node Translator::Parser::type_name(int& curr_token) {
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(specifier_qualifier_list(token_number)) {
-		if(direct_abstract_declarator(token_number, false)) found = true;
+	func_log(token_number, __func__);
+
+	if((result = specifier_qualifier_list(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		if((result = direct_abstract_declarator(token_number, false)).get_type() != Type::none) {
+			p_node.push_back(result);
+			found = true;
+		}
 		found = true;
 	}
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																	// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																	// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::direct_abstract_declarator(int& curr_token, bool recursive) {								// Recursive
+Translator::Node Translator::Parser::direct_abstract_declarator(int& curr_token, bool recursive) {								// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
+
+	func_log(token_number, __func__);
 
 	if(tokens[token_number].get_chars() == "(") {
+		p_node.push_back(Node(tokens[token_number], __func__));
 		if(!recursive) {
-			if(direct_abstract_declarator(++token_number, false)) {
+			if((result = direct_abstract_declarator(++token_number, false)).get_type() != Type::none) {
+				p_node.push_back(result);
 				if(tokens[token_number].get_chars() == ")") {
-					if(direct_abstract_declarator(++token_number, true)) found = true;
+					p_node.push_back(Node(tokens[token_number], __func__));
+					if((result = direct_abstract_declarator(++token_number, true)).get_type() != Type::none) {
+						p_node.push_back(result);
+						found = true;
+					}
 					found = true;
 				}
 				else {}																		// It will be an error
@@ -1021,12 +1472,21 @@ bool Translator::Parser::direct_abstract_declarator(int& curr_token, bool recurs
 		}
 		else {
 			if(tokens[token_number + 1].get_chars() == ")") {
-				if(direct_abstract_declarator(token_number += 2, true)) found = true;
+				p_node.push_back(Node(tokens[token_number + 1], __func__));
+				if((result = direct_abstract_declarator(token_number += 2, true)).get_type() != Type::none) {
+					p_node.push_back(result);
+					found = true;
+				}
 				found = true;
 			}
-			else if(parameter_list(++token_number)) {
+			else if((result = parameter_list(++token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
 				if(tokens[token_number].get_chars() == ")") {
-					if(direct_abstract_declarator(++token_number, true)) found = true;
+					p_node.push_back(Node(tokens[token_number], __func__));
+					if((result = direct_abstract_declarator(++token_number, true)).get_type() != Type::none) {
+						p_node.push_back(result);
+						found = true;
+					}
 					found = true;
 				}
 				else {}																		// It will be an error
@@ -1035,13 +1495,23 @@ bool Translator::Parser::direct_abstract_declarator(int& curr_token, bool recurs
 		}
 	}
 	else if(tokens[token_number].get_chars() == "[") {
+		p_node.push_back(Node(tokens[token_number], __func__));
 		if(tokens[token_number + 1].get_chars() == "]") {
-			if(direct_abstract_declarator(token_number += 2, true)) found = true;
+			p_node.push_back(Node(tokens[token_number + 1], __func__));
+			if((result = direct_abstract_declarator(token_number += 2, true)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			found = true;
 		}
-		else if(conditional_expression(++token_number)) {
+		else if((result = conditional_expression(++token_number)).get_type() != Type::none) {
+			p_node.push_back(result);
 			if(tokens[token_number].get_chars() == "]") {
-				if(direct_abstract_declarator(++token_number, true)) found = true;
+				p_node.push_back(Node(tokens[token_number], __func__));
+				if((result = direct_abstract_declarator(++token_number, true)).get_type() != Type::none) {
+					p_node.push_back(result);
+					found = true;
+				}
 				found = true;
 			}
 			else {}																			// It will be an error
@@ -1051,25 +1521,37 @@ bool Translator::Parser::direct_abstract_declarator(int& curr_token, bool recurs
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																		// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																		// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::initializer(int& curr_token) {
+Translator::Node Translator::Parser::initializer(int& curr_token) {
 	int token_number = curr_token;
 	int found = 0;	// Types: 0 - nothing found, 1 - found function, 2 - found token
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(assignment_expression(token_number)) found = 1;
+	func_log(token_number, __func__);
+
+	if((result = assignment_expression(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		found = 1;
+	}
 	else if(tokens[token_number].get_chars() == "{") {
-		if(initializer_list(++token_number)) {
-			if(tokens[token_number].get_chars() == "}") found = 2;
+		p_node.push_back(Node(tokens[token_number], __func__));
+		if((result = initializer_list(++token_number)).get_type() != Type::none) {
+			p_node.push_back(result);
+			if(tokens[token_number].get_chars() == "}") {
+				p_node.push_back(Node(tokens[token_number], __func__));
+				found = 2;
+			}
 			else {}																		// It will be an error
 		}
 		else {}																			// It will be an error
@@ -1077,24 +1559,33 @@ bool Translator::Parser::initializer(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number + found - 1;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																	// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																	// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::initializer_list(int& curr_token) {			// Recursive
+Translator::Node Translator::Parser::initializer_list(int& curr_token) {			// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(initializer(token_number)) { 
+	func_log(token_number, __func__);
+
+	if((result = initializer(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
 		if(tokens[token_number].get_chars() == ",") {
-			if(initializer_list(++token_number)) found = true;
+			p_node.push_back(Node(tokens[token_number], __func__));
+			if((result = initializer_list(++token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			else {}															// It will be an error
 		}
 		found = true; 
@@ -1102,49 +1593,81 @@ bool Translator::Parser::initializer_list(int& curr_token) {			// Recursive
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;														// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);														// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::statement(int& curr_token) {
+Translator::Node Translator::Parser::statement(int& curr_token) {
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(labeled_statement(token_number)) found = true;
-	else if(compound_statement(token_number)) found = true;
-	else if(expression_statement(token_number)) found = true;
-	else if(selection_statement(token_number)) found = true;
-	else if(iteration_statement(token_number)) found = true;
-	else if(jump_statement(token_number)) found = true;
+	func_log(token_number, __func__);
+
+	if((result = labeled_statement(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		found = true;
+	}
+	else if((result = compound_statement(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		found = true;
+	}
+	else if((result = expression_statement(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		found = true;
+	}
+	else if((result = selection_statement(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		found = true;
+	}
+	else if((result = iteration_statement(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		found = true;
+	}
+	else if((result = jump_statement(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		found = true;
+	}
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;														// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);														// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::labeled_statement(int& curr_token) {
+Translator::Node Translator::Parser::labeled_statement(int& curr_token) {
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
+
+	func_log(token_number, __func__);
 
 	if(tokens[token_number].get_type() == Type::CASE) {
-		if(conditional_expression(++token_number)) {
+		p_node.push_back(Node(tokens[token_number], __func__));
+		if((result = conditional_expression(++token_number)).get_type() != Type::none) {
+			p_node.push_back(result);
 			if(tokens[token_number].get_chars() == ":") {
-				if(statement(++token_number)) found = true;
+				p_node.push_back(Node(tokens[token_number], __func__));
+				if((result = statement(++token_number)).get_type() != Type::none) {
+					p_node.push_back(result);
+					found = true;
+				}
 				else {}															// It will be an error
 			}
 			else {}																// It will be an error
@@ -1152,8 +1675,13 @@ bool Translator::Parser::labeled_statement(int& curr_token) {
 		else {}																	// It will be an error
 	}
 	else if(tokens[token_number].get_type() == Type::DEFAULT) {
+		p_node.push_back(Node(tokens[token_number], __func__));
 		if(tokens[token_number + 1].get_chars() == ":") {
-			if(statement(token_number += 2)) found = true;
+			p_node.push_back(Node(tokens[token_number + 1], __func__));
+			if((result = statement(token_number += 2)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			else {}															// It will be an error
 		}
 		else {}																// It will be an error
@@ -1161,34 +1689,54 @@ bool Translator::Parser::labeled_statement(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;															// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);															// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::compound_statement(int& curr_token) {
+Translator::Node Translator::Parser::compound_statement(int& curr_token) {
 	int token_number = curr_token;
 	int found = 0;	// Types: 0 - nothing found, 1 - found parentesis with function, 2 - found only parentesis
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
+
+	func_log(token_number, __func__);
 
 	if(tokens[token_number].get_chars() == "{" ) {
-		if(tokens[token_number + 1].get_chars() == "}") found = 2;
-		else if(statement_list(++token_number)) {
-			if(tokens[token_number].get_chars() == "}") found = 1;
+		p_node.push_back(Node(tokens[token_number], __func__));
+		if(tokens[token_number + 1].get_chars() == "}") {
+			p_node.push_back(Node(tokens[token_number], __func__));
+			found = 2;
+		}
+		else if((result = statement_list(++token_number)).get_type() != Type::none) {
+			p_node.push_back(result);
+			if(tokens[token_number].get_chars() == "}") {
+				p_node.push_back(Node(tokens[token_number], __func__));
+				found = 1;
+			}
 			else {}																	// It will be an error
 		}
 
 		if(!found) {
 			token_number = curr_token;
-			if(declaration_list(++token_number)) {
-				if(tokens[token_number].get_chars() == "}") found = 1;
-				else if(statement_list(token_number)) {
-					if(tokens[token_number].get_chars() == "}") found = 1;
+			if((result = declaration_list(++token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
+				if(tokens[token_number].get_chars() == "}") {
+					p_node.push_back(Node(tokens[token_number], __func__));
+					found = 1;
+				}
+				else if((result = statement_list(token_number)).get_type() != Type::none) {
+					p_node.push_back(result);
+					if(tokens[token_number].get_chars() == "}") {
+						p_node.push_back(Node(tokens[token_number], __func__));
+						found = 1;
+					}
 					else {}															// It will be an error
 				}
 				else {}																// It will be an error
@@ -1199,95 +1747,135 @@ bool Translator::Parser::compound_statement(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number + found;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::declaration_list(int& curr_token) {			// Recursive
+Translator::Node Translator::Parser::declaration_list(int& curr_token) {			// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(declaration(token_number)) {
-		if(declaration_list(token_number)) found = true;
+	func_log(token_number, __func__);
+
+	if((result = declaration(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		if((result = declaration_list(token_number)).get_type() != Type::none) {
+			p_node.push_back(result);
+			found = true;
+		}
 		found = true; 
 	}
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;													// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);													// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::statement_list(int& curr_token) {				// Recursive
+Translator::Node Translator::Parser::statement_list(int& curr_token) {				// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(statement(token_number)) {
-		if(statement_list(token_number)) found = true;
+	func_log(token_number, __func__);
+
+	if((result = statement(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		if((result = statement_list(token_number)).get_type() != Type::none) {
+			p_node.push_back(result);
+			found = true;
+		}
 		found = true; 
 	}
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;													// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);													// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::expression_statement(int& curr_token) {
+Translator::Node Translator::Parser::expression_statement(int& curr_token) {
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(tokens[token_number].get_chars() == ";") found = true;
-	else if(expression(token_number)) {
-		if(tokens[token_number].get_chars() == ";") found = true;
+	func_log(token_number, __func__);
+
+	if(tokens[token_number].get_chars() == ";") {
+		p_node.push_back(Node(tokens[token_number], __func__));
+		found = true;
+	}
+	else if((result = expression(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		if(tokens[token_number].get_chars() == ";") {
+			p_node.push_back(Node(tokens[token_number], __func__));
+			found = true;
+		}
 		else {}																// It will be an error
 	}
 
 	if(found) {
 		curr_token = token_number + 1;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;														// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);														// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::selection_statement(int& curr_token) {
+Translator::Node Translator::Parser::selection_statement(int& curr_token) {
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
+
+	func_log(token_number, __func__);
 
 	if(tokens[token_number].get_type() == Type::IF) {
+		p_node.push_back(Node(tokens[token_number], __func__));
 		if(tokens[token_number + 1].get_chars() == "(") {
-			if(expression(token_number += 2)) {
+			p_node.push_back(Node(tokens[token_number + 1], __func__));
+			if((result = expression(token_number += 2)).get_type() != Type::none) {
+				p_node.push_back(result);
 				if(tokens[token_number].get_chars() == ")") {
-					if(statement(++token_number)) {
+					p_node.push_back(Node(tokens[token_number], __func__));
+					if((result = statement(++token_number)).get_type() != Type::none) {
+						p_node.push_back(result);
 						if(tokens[token_number].get_type() == Type::ELSE) {
-							if(statement(++token_number)) found = true;
+							p_node.push_back(Node(tokens[token_number], __func__));
+							if((result = statement(++token_number)).get_type() != Type::none) {
+								p_node.push_back(result);
+								found = true;
+							}
 							else {}													// It will be an error
 						}
 						found = true;
@@ -1301,10 +1889,17 @@ bool Translator::Parser::selection_statement(int& curr_token) {
 		else {}																		// It will be an error
 	}
 	else if(tokens[token_number].get_type() == Type::SWITCH) {
+		p_node.push_back(Node(tokens[token_number], __func__));
 		if(tokens[token_number + 1].get_chars() == "(") {
-			if(expression(token_number += 2)) {
+			p_node.push_back(Node(tokens[token_number + 1], __func__));
+			if((result = expression(token_number += 2)).get_type() != Type::none) {
+				p_node.push_back(result);
 				if(tokens[token_number].get_chars() == ")") {
-					if(statement(++token_number)) found = true;
+					p_node.push_back(Node(tokens[token_number], __func__));
+					if((result = statement(++token_number)).get_type() != Type::none) {
+						p_node.push_back(result);
+						found = true;
+					}
 					else {}															// It will be an error
 				}
 				else {}																// It will be an error
@@ -1316,26 +1911,37 @@ bool Translator::Parser::selection_statement(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::iteration_statement(int& curr_token) {
+Translator::Node Translator::Parser::iteration_statement(int& curr_token) {
 	int token_number = curr_token;
 	int found = 0;	// Types: 0 - nothing found, 1 - found function, 2 - found token
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
+
+	func_log(token_number, __func__);
 
 	if(tokens[token_number].get_type() == Type::WHILE) {
+		p_node.push_back(Node(tokens[token_number], __func__));
 		if(tokens[token_number + 1].get_chars() == "(") {
-			if(expression(token_number += 2)) {
+			p_node.push_back(Node(tokens[token_number + 1], __func__));
+			if((result = expression(token_number += 2)).get_type() != Type::none) {
+				p_node.push_back(result);
 				if(tokens[token_number].get_chars() == ")") {
-					if(statement(++token_number)) found = 1;
+					p_node.push_back(Node(tokens[token_number], __func__));
+					if((result = statement(++token_number)).get_type() != Type::none) {
+						p_node.push_back(result);
+						found = 1;
+					}
 					else {}																// It will be an error
 				}
 				else {}																	// It will be an error
@@ -1345,12 +1951,21 @@ bool Translator::Parser::iteration_statement(int& curr_token) {
 		else {}																			// It will be an error
 	}
 	else if(tokens[token_number].get_type() == Type::DO) {
-		if(statement(++token_number)) {
+		p_node.push_back(Node(tokens[token_number], __func__));
+		if((result = statement(++token_number)).get_type() != Type::none) {
+			p_node.push_back(result);
 			if(tokens[token_number].get_type() == Type::WHILE) {
+				p_node.push_back(Node(tokens[token_number], __func__));
 				if(tokens[token_number + 1].get_chars() == "(") {
-					if(expression(token_number += 2)) {
+					p_node.push_back(Node(tokens[token_number + 1], __func__));
+					if((result = expression(token_number += 2)).get_type() != Type::none) {
+						p_node.push_back(result);
 						if(tokens[token_number].get_chars() == ")") {
-							if(tokens[token_number + 1].get_chars() == ";") found = 2;
+							p_node.push_back(Node(tokens[token_number], __func__));
+							if(tokens[token_number + 1].get_chars() == ";") {
+								p_node.push_back(Node(tokens[token_number + 1], __func__));
+								found = 2;
+							}
 							else {}														// It will be an error
 						}
 						else {}															// It will be an error
@@ -1364,16 +1979,29 @@ bool Translator::Parser::iteration_statement(int& curr_token) {
 		else {}																			// It will be an error
 	}
 	else if(tokens[token_number].get_type() == Type::FOR) {
+		p_node.push_back(Node(tokens[token_number], __func__));
 		if(tokens[token_number + 1].get_chars() == "(") {
-			if(expression_statement(token_number += 2)) {
-				if(expression_statement(token_number)) {
+			p_node.push_back(Node(tokens[token_number + 1], __func__));
+			if((result = expression_statement(token_number += 2)).get_type() != Type::none) {
+				p_node.push_back(result);
+				if((result = expression_statement(token_number)).get_type() != Type::none) {
+					p_node.push_back(result);
 					if(tokens[token_number].get_chars() == ")") {
-						if(statement(++token_number)) found = 1;
+						p_node.push_back(Node(tokens[token_number], __func__));
+						if((result = statement(++token_number)).get_type() != Type::none) {
+							p_node.push_back(result);
+							found = 1;
+						}
 						else {}															// It will be an error
 					}
-					else if(expression(token_number)) {
+					else if((result = expression(token_number)).get_type() != Type::none) {
+						p_node.push_back(result);
 						if(tokens[token_number].get_chars() == ")") {
-							if(statement(++token_number)) found = 1;
+							p_node.push_back(Node(tokens[token_number], __func__));
+							if((result = statement(++token_number)).get_type() != Type::none) {
+								p_node.push_back(result);
+								found = 1;
+							}
 							else {}														// It will be an error
 						}
 						else {}															// It will be an error
@@ -1389,34 +2017,50 @@ bool Translator::Parser::iteration_statement(int& curr_token) {
 
 	if(found == 2) {
 		curr_token = token_number + 2;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else if(found == 1) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																	// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																	// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::jump_statement(int& curr_token) {
+Translator::Node Translator::Parser::jump_statement(int& curr_token) {
 	int token_number = curr_token;
 	int found = 0;	// Types: 0 - nothing found, 1 - found token after function, 2 - found only token
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
+
+	func_log(token_number, __func__);
 
 	if(tokens[token_number].get_type() == Type::BREAK) {
-		if(tokens[token_number + 1].get_chars() == ";") found = 2;
+		p_node.push_back(Node(tokens[token_number], __func__));
+		if(tokens[token_number + 1].get_chars() == ";") {
+			p_node.push_back(Node(tokens[token_number + 1], __func__));
+			found = 2;
+		}
 		else {}															// It will be an error
 	}
 	else if(tokens[token_number].get_type() == Type::RETURN) {
-		if(tokens[token_number + 1].get_chars() == ";") found = 2;
-		else if(expression(++token_number)) {
-			if(tokens[token_number].get_chars() == ";") found = 1;
+		p_node.push_back(Node(tokens[token_number], __func__));
+		if(tokens[token_number + 1].get_chars() == ";") {
+			p_node.push_back(Node(tokens[token_number + 1], __func__));
+			found = 2;
+		}
+		else if((result = expression(++token_number)).get_type() != Type::none) {
+			p_node.push_back(result);
+			if(tokens[token_number].get_chars() == ";") {
+				p_node.push_back(Node(tokens[token_number], __func__));
+				found = 1;
+			}
 			else {}														// It will be an error
 		}
 		else {}															// It will be an error
@@ -1424,90 +2068,129 @@ bool Translator::Parser::jump_statement(int& curr_token) {
 
 	if(found) {
 		curr_token = token_number + found;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;													// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);													// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::translation_unit(int& curr_token) {			// Recursive
+Translator::Node Translator::Parser::translation_unit(int curr_token) {			// Recursive
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(external_declaration(token_number)) {
-		if(translation_unit(token_number)) found = true;
+	func_log(token_number, __func__);
+
+	if((result = external_declaration(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		if((result = translation_unit(token_number)).get_type() != Type::none) {
+			p_node.push_back(result);
+			found = true;
+		}
 		found = true; 
 	}
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;													// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);													// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::external_declaration(int& curr_token) {
+Translator::Node Translator::Parser::external_declaration(int& curr_token) {
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(function_definition(token_number)) found = true;
-	else if(declaration(token_number)) found = true;
+	func_log(token_number, __func__);
+
+	if((result = function_definition(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		found = true;
+	}
+	else if((result = declaration(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		found = true;
+	}
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;												// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);												// It will be an error (?)
 	}
 }
 
-bool Translator::Parser::function_definition(int& curr_token) {
+Translator::Node Translator::Parser::function_definition(int& curr_token) {
 	int token_number = curr_token;
 	bool found = false;
+	Node p_node(Token(Type::parsing), __func__);
+	Node result;
 
-	std::cout << std::endl << token_number << ": " << tokens[token_number].get_chars() <<  " -> " << __func__;
+	if(end) return Node(Token(Type::none), __func__);
 
-	if(declaration_specifiers(token_number)) {
-		if(direct_declarator(token_number, false)) {
-			if(declaration_list(token_number)) {
-				if(compound_statement(token_number)) found = true;
+	func_log(token_number, __func__);
+
+	if((result = declaration_specifiers(token_number)).get_type() != Type::none) {
+		p_node.push_back(result);
+		if((result = direct_declarator(token_number, false)).get_type() != Type::none) {
+			p_node.push_back(result);
+			if((result = declaration_list(token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
+				if((result = compound_statement(token_number)).get_type() != Type::none) {
+					p_node.push_back(result);
+					found = true;
+				}
 				else {}																	// It will be an error
 			}
-			else if(compound_statement(token_number)) found = true;
+			else if((result = compound_statement(token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			else {}																		// It will be an error
 		}
 		else {}																			// It will be an error
 	}
-	else if(direct_declarator(token_number, false)) {
-		if(declaration_list(token_number)) {
-			if(compound_statement(token_number)) found = true;
+	else if((result = direct_declarator(token_number, false)).get_type() != Type::none) {
+		p_node.push_back(result);
+		if((result = declaration_list(token_number)).get_type() != Type::none) {
+			p_node.push_back(result);
+			if((result = compound_statement(token_number)).get_type() != Type::none) {
+				p_node.push_back(result);
+				found = true;
+			}
 			else {}																		// It will be an error
 		}
-		else if(compound_statement(token_number)) found = true;
+		else if((result = compound_statement(token_number)).get_type() != Type::none) {
+			p_node.push_back(result);
+			found = true;
+		}
 		else {}																			// It will be an error
 	}
 
 	if(found) {
 		curr_token = token_number;
-		if(tokens[curr_token].get_type() == Type::eof) { std::cout << std::endl << "Parsing finished"; exit(1); }
-		return true;
+		if(tokens[curr_token].get_type() == Type::eof) end = true; 
+		return p_node;
 	}
 	else {
-		std::cout << std::endl << "X: " << __func__;
-		return false;																	// It will be an error (?)
+		// std::cout << std::endl << "X: " << __func__;
+		return Node(Token(Type::none), __func__);																	// It will be an error (?)
 	}
 }

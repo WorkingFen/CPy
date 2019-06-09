@@ -1,0 +1,135 @@
+##### LEXER #####
+
+INT, IDENTIFIER, '(', INT, IDENTIFIER, ')', '{', 
+IF, '(', IDENTIFIER, '==', CONSTANT, ')', 
+RETURN, CONSTANT, ';', 
+ELSE, 
+RETURN, IDENTIFIER, '*', IDENTIFIER, '(', IDENTIFIER, '-', CONSTANT, ')', ';', 
+'}', EOF
+
+##### PARSER #####
+
+Parsing finished
+
+### Drzewo skladniowe ###
+
+translation_unit
+  external_declaration
+    function_definition
+      declaration_specifiers
+        type_specifier
+..........int
+      direct_declarator
+........silnia
+        direct_declarator
+..........(
+          parameter_list
+            parameter_declaration
+              declaration_specifiers
+                type_specifier
+..................int
+              direct_declarator
+................x
+..........)
+      compound_statement
+........{
+        statement_list
+          statement
+            selection_statement
+..............if
+..............(
+              expression
+                assignment_expression
+                  conditional_expression
+                    logical_or_expression
+                      logical_and_expression
+                        equality_expression
+                          relational_expression
+                            additive_expression
+                              multiplicative_expression
+                                cast_expression
+                                  unary_expression
+                                    postfix_expression
+                                      primary_expression
+........................................x
+..........................==
+                          equality_expression
+                            relational_expression
+                              additive_expression
+                                multiplicative_expression
+                                  cast_expression
+                                    unary_expression
+                                      postfix_expression
+                                        primary_expression
+..........................................0
+..............)
+              statement
+                jump_statement
+..................return
+                  expression
+                    assignment_expression
+                      conditional_expression
+                        logical_or_expression
+                          logical_and_expression
+                            equality_expression
+                              relational_expression
+                                additive_expression
+                                  multiplicative_expression
+                                    cast_expression
+                                      unary_expression
+                                        postfix_expression
+                                          primary_expression
+............................................1
+..................;
+..............else
+              statement
+                jump_statement
+..................return
+                  expression
+                    assignment_expression
+                      conditional_expression
+                        logical_or_expression
+                          logical_and_expression
+                            equality_expression
+                              relational_expression
+                                additive_expression
+                                  multiplicative_expression
+                                    cast_expression
+                                      unary_expression
+                                        postfix_expression
+                                          primary_expression
+............................................x
+....................................*
+                                    multiplicative_expression
+                                      cast_expression
+                                        unary_expression
+                                          postfix_expression
+                                            primary_expression
+..............................................silnia
+                                            postfix_expression
+..............................................(
+                                              argument_expression_list
+                                                assignment_expression
+                                                  conditional_expression
+                                                    logical_or_expression
+                                                      logical_and_expression
+                                                        equality_expression
+                                                          relational_expression
+                                                            additive_expression
+                                                              multiplicative_expression
+                                                                cast_expression
+                                                                  unary_expression
+                                                                    postfix_expression
+                                                                      primary_expression
+........................................................................x
+..............................................................-
+                                                              additive_expression
+                                                                multiplicative_expression
+                                                                  cast_expression
+                                                                    unary_expression
+                                                                      postfix_expression
+                                                                        primary_expression
+..........................................................................1
+..............................................)
+..................;
+........}

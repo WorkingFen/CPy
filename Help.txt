@@ -1,0 +1,125 @@
+#include "Parser.h"
+
+void Translator::Parser::start_parsing() {
+        int token_number = 0;
+
+        std::cout << std::endl << __func__;
+
+         translation_unit(token_number);                                        // It will be an error
+}
+
+bool Translator::Parser::conditional_expression(int& curr_token) {                      // 
+Recursive
+        int token_number = curr_token;
+        bool found = false;
+
+        std::cout << std::endl << token_number << ": " << 
+tokens[token_number].get_chars() <<  " -> " << __func__;
+
+     try {
+         auto l1 = logical_or_expression();
+         current_token('?');
+         auto l2 = expression();
+         current_token(':');
+         auto l3 = conditional_expression();
+         return new ConditionalExpression(l1, l2, l3);
+     } catch (ParseError &err) {
+
+     };
+        if(logical_or_expression(token_number)) {
+                if(tokens[token_number].get_chars() == "?") {
+                        if(expression(++token_number)) {
+                                if(tokens[token_number].get_chars() == ":") {
+                                        if(conditional_expression(++token_number)) found = true;
+                                        else {}                                                                                                                 // It will be an error
+                                }
+                                else {}                                                                                                                         // It will be an error
+                        }
+                        else {}                                                                                                                                 // It will be an error
+                }
+                found = true;
+        }
+
+        if(found) {
+                curr_token = token_number;
+                if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+                return true;
+        }
+        else {
+                std::cout << std::endl << "X: " << __func__;
+                return false;                                                                                                                           // It will be an error (?)
+        }
+}
+
+
+template<typename T...> R foo(T... funcs) {
+     try {
+
+     } catch {
+
+     }
+}
+
+class TokenTransaction {
+public:
+     TokenTransaction(int &c) : m_val(c), m_new(c) {}
+     void increment(int i) {
+         m_new += i;
+     }
+     void commit() {
+         m_val = m_new;
+     }
+private:
+     int &m_val;
+     int m_new;
+};
+
+bool Translator::Parser::function_definition(int& curr_token) {
+        int token_number = curr_token;
+        bool found = false;
+
+        std::cout << std::endl << token_number << ": " << 
+tokens[token_number].get_chars() <<  " -> " << __func__;
+
+     try {
+         TokenTransaction t(curr_token);
+         declaration_specifiers()
+         t++;
+         direct_declarator();
+         t+=2;
+         declaration_list || compound_statement
+         t.commit(); // faktycznie zwieksza
+     }
+
+        if(declaration_specifiers(token_number)) {
+                if(direct_declarator(token_number, false)) {
+                        if(declaration_list(token_number)) {
+                 if(compound_statement(token_number)) {
+                     found = true;
+                 }
+                                else {}                                                                                                                                 // It will be an error
+                        }
+                        else if(compound_statement(token_number)) found = true;
+                        else {}                                                                                                                                         // It will be an error
+                }
+                else {}                                                                                                                                                 // It will be an error
+        }
+        else if(direct_declarator(token_number, false)) {
+                if(declaration_list(token_number)) {
+                        if(compound_statement(token_number)) found = true;
+                        else {}                                                                                                                                         // It will be an error
+                }
+                else if(compound_statement(token_number)) found = true;
+                else {}                                                                                                                                                 // It will be an error
+        }
+
+        if(found) {
+                curr_token = token_number;
+                if(tokens[curr_token].get_type() == Type::eof) { exit(1); }
+                return true;
+        }
+        else {
+                std::cout << std::endl << "X: " << __func__;
+                return false;                                                                                                                                   // It will be an error (?)
+        }
+}

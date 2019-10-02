@@ -5,131 +5,89 @@
 
 void cout_type(Translator::Token token) {
 	switch(token.get_type()) {
-		case Translator::Type::ADD_ASSIGN:
-			std::cout << "'+='";
+		case Translator::Type::ADD_ASSIGN: std::cout << "'+='";
 			break;
-		case Translator::Type::AND_OP:
-			std::cout << "'&&'";
+		case Translator::Type::AND_OP: std::cout << "'&&'";
 			break;
-		case Translator::Type::BREAK:
-			std::cout << "BREAK";
+		case Translator::Type::BREAK: std::cout << "BREAK";
 			break;
-		case Translator::Type::CASE:
-			std::cout << "CASE";
+		case Translator::Type::CASE: std::cout << "CASE";
 			break;
-		case Translator::Type::CHAR:
-			std::cout << "CHAR";
+		case Translator::Type::CHAR: std::cout << "CHAR";
 			break;
-		case Translator::Type::CONSTANT:
-			std::cout << "CONSTANT";
+		case Translator::Type::CONSTANT: std::cout << "CONSTANT";
 			break;
-		case Translator::Type::DEC_OP:
-			std::cout << "'--'";
+		case Translator::Type::DEC_OP: std::cout << "'--'";
 			break;
-		case Translator::Type::DEFAULT:
-			std::cout << "DEFAULT";
+		case Translator::Type::DEFAULT: std::cout << "DEFAULT";
 			break;
-		case Translator::Type::DIV_ASSIGN:
-			std::cout << "'/='";
+		case Translator::Type::DIV_ASSIGN: std::cout << "'/='";
 			break;
-		case Translator::Type::DO:
-			std::cout << "DO";
+		case Translator::Type::DO: std::cout << "DO";
 			break;
-		case Translator::Type::DOUBLE:
-			std::cout << "DOUBLE";
+		case Translator::Type::DOUBLE: std::cout << "DOUBLE";
 			break;
-		case Translator::Type::ELSE:
-			std::cout << "ELSE";
+		case Translator::Type::ELSE: std::cout << "ELSE";
 			break;
-		case Translator::Type::ENUM:
-			std::cout << "ENUM";
+		case Translator::Type::ENUM: std::cout << "ENUM";
 			break;
-		case Translator::Type::eof:
-			std::cout << "EOF";
+		case Translator::Type::eof: std::cout << "EOF";
 			break;
-		case Translator::Type::EQ_OP:
-			std::cout << "'=='";
+		case Translator::Type::EQ_OP: std::cout << "'=='";
 			break;
-		case Translator::Type::error:
-			std::cout << "ERROR";
+		case Translator::Type::error: std::cout << "ERROR";
 			break;
-		case Translator::Type::FLOAT:
-			std::cout << "FLOAT";
+		case Translator::Type::FLOAT: std::cout << "FLOAT";
 			break;
-		case Translator::Type::FOR:
-			std::cout << "FOR";
+		case Translator::Type::FOR: std::cout << "FOR";
 			break;
-		case Translator::Type::GE_OP:
-			std::cout << "'>='";
+		case Translator::Type::GE_OP: std::cout << "'>='";
 			break;
-		case Translator::Type::IDENTIFIER:
-			std::cout << "IDENTIFIER";
+		case Translator::Type::IDENTIFIER: std::cout << "IDENTIFIER";
 			break;
-		case Translator::Type::IF:
-			std::cout << "IF";
+		case Translator::Type::IF: std::cout << "IF";
 			break;
-		case Translator::Type::INC_OP:
-			std::cout << "'++'";
+		case Translator::Type::INC_OP: std::cout << "'++'";
 			break;
-		case Translator::Type::INT:
-			std::cout << "INT";
+		case Translator::Type::INT: std::cout << "INT";
 			break;
-		case Translator::Type::LE_OP:
-			std::cout << "'<='";
+		case Translator::Type::LE_OP: std::cout << "'<='";
 			break;
-		case Translator::Type::LONG:
-			std::cout << "LONG";
+		case Translator::Type::LONG: std::cout << "LONG";
 			break;
-		case Translator::Type::MOD_ASSIGN:
-			std::cout << "'%='";
+		case Translator::Type::MOD_ASSIGN: std::cout << "'%='";
 			break;
-		case Translator::Type::MUL_ASSIGN:
-			std::cout << "'*='";
+		case Translator::Type::MUL_ASSIGN: std::cout << "'*='";
 			break;
-		case Translator::Type::NE_OP:
-			std::cout << "'!='";
+		case Translator::Type::NE_OP: std::cout << "'!='";
 			break;
-		case Translator::Type::none:
-			std::cout << "UNKNOWN";
+		case Translator::Type::none: std::cout << "UNKNOWN";
 			break;
-		case Translator::Type::OR_OP:
-			std::cout << "'||'";
+		case Translator::Type::OR_OP: std::cout << "'||'";
 			break;
-		case Translator::Type::RETURN:
-			std::cout << "RETURN";
+		case Translator::Type::RETURN: std::cout << "RETURN";
 			break;
-		case Translator::Type::SHORT:
-			std::cout << "SHORT";
+		case Translator::Type::SHORT: std::cout << "SHORT";
 			break;
-		case Translator::Type::SIGNED:
-			std::cout << "SIGNED";
+		case Translator::Type::SIGNED: std::cout << "SIGNED";
 			break;
-		case Translator::Type::STRING_LITERAL:
-			std::cout << "STRING_LITERAL";
+		case Translator::Type::STRING_LITERAL: std::cout << "STRING_LITERAL";
 			break;
-		case Translator::Type::STRUCT:
-			std::cout << "STRUCT";
+		case Translator::Type::STRUCT: std::cout << "STRUCT";
 			break;
-		case Translator::Type::SUB_ASSIGN:
-			std::cout << "'-='";
+		case Translator::Type::SUB_ASSIGN: std::cout << "'-='";
 			break;
-		case Translator::Type::SWITCH:
-			std::cout << "SWITCH";
+		case Translator::Type::SWITCH: std::cout << "SWITCH";
 			break;
-		case Translator::Type::TYPEDEF:
-			std::cout << "TYPEDEF";
+		case Translator::Type::TYPEDEF: std::cout << "TYPEDEF";
 			break;
-		case Translator::Type::UNSIGNED:
-			std::cout << "UNSIGNED";
+		case Translator::Type::UNSIGNED: std::cout << "UNSIGNED";
 			break;
-		case Translator::Type::VOID:
-			std::cout << "VOID";
+		case Translator::Type::VOID: std::cout << "VOID";
 			break;
-		case Translator::Type::WHILE:
-			std::cout << "WHILE";
+		case Translator::Type::WHILE: std::cout << "WHILE";
 			break;
-		default:
-			std::cout << "'" << token.get_chars() << "'";
+		default: std::cout << "'" << token.get_chars() << "'";
 			break;
 	}
 }

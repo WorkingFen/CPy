@@ -53,17 +53,17 @@ namespace Translator {
 	};
 
 	class Token {
-		Type type;
+		Type type{ Type::eof };
 		std::string chars;
 
 	public:
-		Token() : type(Type::eof) {}
+		Token() = default;
 		Token(Type t) : type(t) {}
 
+		void set_type(Type value) { type = value; }
 		Type get_type() const { return type; }
-		void set_type(Type setType) { type = setType; }
-		void set_chars(std::string characters) { chars = characters; }
-		std::string get_chars() { return chars;	}
+		void set_chars(std::string value) { chars = value; }
+		std::string get_chars() const { return chars; }
 	};
 }
 

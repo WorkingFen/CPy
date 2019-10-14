@@ -1,95 +1,59 @@
 #include <iostream>
 #include <sstream>
+#include <unordered_map>
 #include "Lexer.h"
 #include "Parser.h"
 
 void cout_type(Translator::Token token) {
-	switch(token.get_type()) {
-		case Translator::Type::ADD_ASSIGN: std::cout << "'+='";
-			break;
-		case Translator::Type::AND_OP: std::cout << "'&&'";
-			break;
-		case Translator::Type::BREAK: std::cout << "BREAK";
-			break;
-		case Translator::Type::CASE: std::cout << "CASE";
-			break;
-		case Translator::Type::CHAR: std::cout << "CHAR";
-			break;
-		case Translator::Type::CONSTANT: std::cout << "CONSTANT";
-			break;
-		case Translator::Type::DEC_OP: std::cout << "'--'";
-			break;
-		case Translator::Type::DEFAULT: std::cout << "DEFAULT";
-			break;
-		case Translator::Type::DIV_ASSIGN: std::cout << "'/='";
-			break;
-		case Translator::Type::DO: std::cout << "DO";
-			break;
-		case Translator::Type::DOUBLE: std::cout << "DOUBLE";
-			break;
-		case Translator::Type::ELSE: std::cout << "ELSE";
-			break;
-		case Translator::Type::ENUM: std::cout << "ENUM";
-			break;
-		case Translator::Type::eof: std::cout << "EOF";
-			break;
-		case Translator::Type::EQ_OP: std::cout << "'=='";
-			break;
-		case Translator::Type::error: std::cout << "ERROR";
-			break;
-		case Translator::Type::FLOAT: std::cout << "FLOAT";
-			break;
-		case Translator::Type::FOR: std::cout << "FOR";
-			break;
-		case Translator::Type::GE_OP: std::cout << "'>='";
-			break;
-		case Translator::Type::IDENTIFIER: std::cout << "IDENTIFIER";
-			break;
-		case Translator::Type::IF: std::cout << "IF";
-			break;
-		case Translator::Type::INC_OP: std::cout << "'++'";
-			break;
-		case Translator::Type::INT: std::cout << "INT";
-			break;
-		case Translator::Type::LE_OP: std::cout << "'<='";
-			break;
-		case Translator::Type::LONG: std::cout << "LONG";
-			break;
-		case Translator::Type::MOD_ASSIGN: std::cout << "'%='";
-			break;
-		case Translator::Type::MUL_ASSIGN: std::cout << "'*='";
-			break;
-		case Translator::Type::NE_OP: std::cout << "'!='";
-			break;
-		case Translator::Type::none: std::cout << "UNKNOWN";
-			break;
-		case Translator::Type::OR_OP: std::cout << "'||'";
-			break;
-		case Translator::Type::RETURN: std::cout << "RETURN";
-			break;
-		case Translator::Type::SHORT: std::cout << "SHORT";
-			break;
-		case Translator::Type::SIGNED: std::cout << "SIGNED";
-			break;
-		case Translator::Type::STRING_LITERAL: std::cout << "STRING_LITERAL";
-			break;
-		case Translator::Type::STRUCT: std::cout << "STRUCT";
-			break;
-		case Translator::Type::SUB_ASSIGN: std::cout << "'-='";
-			break;
-		case Translator::Type::SWITCH: std::cout << "SWITCH";
-			break;
-		case Translator::Type::TYPEDEF: std::cout << "TYPEDEF";
-			break;
-		case Translator::Type::UNSIGNED: std::cout << "UNSIGNED";
-			break;
-		case Translator::Type::VOID: std::cout << "VOID";
-			break;
-		case Translator::Type::WHILE: std::cout << "WHILE";
-			break;
-		default: std::cout << "'" << token.get_chars() << "'";
-			break;
-	}
+    std::unordered_map<Translator::Type, std::string> map{
+        {Translator::Type::INC_OP, "'++'"},
+        {Translator::Type::DEC_OP, "'--'"},
+        {Translator::Type::LE_OP, "'<='"},
+        {Translator::Type::GE_OP, "'>='"},
+        {Translator::Type::EQ_OP, "'=='"},
+        {Translator::Type::NE_OP, "'!='"},
+        {Translator::Type::AND_OP, "'&&'"},
+        {Translator::Type::OR_OP, "'||'"},
+        {Translator::Type::MUL_ASSIGN, "'*='"},
+        {Translator::Type::DIV_ASSIGN, "'/='"},
+        {Translator::Type::MOD_ASSIGN, "'%='"},
+        {Translator::Type::ADD_ASSIGN, "'+='"},
+        {Translator::Type::SUB_ASSIGN, "'-='"},
+        {Translator::Type::TYPEDEF, "TYPEDEF"},
+        {Translator::Type::CHAR, "CHAR"},
+        {Translator::Type::SHORT, "SHORT"},
+        {Translator::Type::INT, "INT"},
+        {Translator::Type::LONG, "LONG"},
+        {Translator::Type::SIGNED, "SIGNED"},
+        {Translator::Type::UNSIGNED, "UNSIGNED"},
+        {Translator::Type::FLOAT, "FLOAT"},
+        {Translator::Type::DOUBLE, "DOUBLE"},
+        {Translator::Type::VOID, "VOID"},
+        {Translator::Type::STRUCT, "STRUCT"},
+        {Translator::Type::ENUM, "ENUM"},
+        {Translator::Type::CASE, "CASE"},
+        {Translator::Type::DEFAULT, "DEFAULT"},
+        {Translator::Type::IF, "IF"},
+        {Translator::Type::ELSE, "ELSE"},
+        {Translator::Type::SWITCH, "SWITCH"},
+        {Translator::Type::WHILE, "WHILE"},
+        {Translator::Type::DO, "DO"},
+        {Translator::Type::FOR, "FOR"},
+        {Translator::Type::BREAK, "BREAK"},
+        {Translator::Type::RETURN, "RETURN"},
+        {Translator::Type::CONSTANT, "CONSTANT"},
+        {Translator::Type::IDENTIFIER, "IDENTIFIER"},
+        {Translator::Type::STRING_LITERAL, "STRING_LITERAL"},
+        {Translator::Type::eof, "EOF"},
+        {Translator::Type::error, "ERROR"},
+        {Translator::Type::none, "UNKNOWN"}
+    };
+
+    if(map[token.get_type()] != "")
+        std::cout << map[token.get_type()];
+    else
+        std::cout << "'" << token.get_chars() << "'";
+
 }
 
 int main(int argc, char* argv[]) {
@@ -98,7 +62,7 @@ int main(int argc, char* argv[]) {
 		return -1;
 	}
 
-	std::string fileName = argv[1];
+	std::string fileName(argv[1]);
 	Translator::Source source(fileName);
 	Translator::Lexer scan(&source);
 	Translator::Parser parser;
@@ -111,17 +75,15 @@ int main(int argc, char* argv[]) {
 		scan.get_next_token();
 		token = scan.get_token();
 #ifdef _DEBUG
-		std::cout << scan.get_source()->is_new_line();
+		//std::cout << scan.get_source()->is_new_line();
 #endif
-		if(token.get_type() != Translator::Type::comment) {
-			cout_type(token);
-			if(token.get_type() != Translator::Type::eof) std::cout << ", ";
-			if(scan.get_source()->is_new_line()) {
-				std::cout << std::endl;
-				scan.get_source()->set_new_line(false);
-			}
-			parser.push_back(token);
-		}
+		cout_type(token);
+		if(token.get_type() != Translator::Type::eof) std::cout << ", ";
+		/*if(scan.get_source()->is_new_line()) {
+			std::cout << std::endl;
+			scan.get_source()->set_new_line(false);
+		}*/
+		//parser.push_back(token);
 	}
 
 	/*for(auto i : parser.get_tokens()) {
@@ -135,11 +97,11 @@ int main(int argc, char* argv[]) {
 	}*/
 	// Check semantics here
 
-	std::cout << std::endl << std::endl << "##### PARSER #####" << std::endl;
+	/*std::cout << std::endl << std::endl << "##### PARSER #####" << std::endl;
 
 	parser.start_parsing();
 	std::cout << std::endl << std::endl << "### Drzewo skladniowe ###" << std::endl << std::endl;
-	parser.get_root().read_node(0);
+	parser.get_root().read_node(0);*/
 
 	return 0;
 }

@@ -1,7 +1,0 @@
-﻿  pch.cpp
-  RegexTest.cpp
-  test.cpp
-  Generating Code...
-  RegexTests.vcxproj -> E:\Piotrek\IT\C++\CPy\Debug\RegexTests.exe
-E:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\Microsoft.Common.CurrentVersion.targets(4366,5): error MSB3030: Could not copy the file "E:\Piotrek\IT\C++\CPy\packages\Microsoft.googletest.v140.windesktop.msvcstl.dyn.rt-dyn.1.8.1\build\native\..\..\lib\native\v140\windesktop\msvcstl\dyn\rt-dyn\x86\Debug\gtest_main.pdb" because it was not found.
-E:\Program Files (x86)\Microsoft Visual Studio\2019\Community\MSBuild\Current\Bin\Microsoft.Common.CurrentVersion.targets(4366,5): error MSB3030: Could not copy the file "E:\Piotrek\IT\C++\CPy\packages\Microsoft.googletest.v140.windesktop.msvcstl.dyn.rt-dyn.1.8.1\build\native\..\..\lib\native\v140\windesktop\msvcstl\dyn\rt-dyn\x86\Debug\gtest.pdb" because it was not found.

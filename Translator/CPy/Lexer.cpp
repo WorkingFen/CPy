@@ -3,6 +3,13 @@
 #include <stdexcept>
 #include <iostream>
 
+/*** TODO ***/
+/* Ogarn¹æ, jakie znaki mog¹ wystêpowaæ, albo jakie nie mog¹ (zale¿y od tego co ³atwiejsze) w regexach jako nastêpniki
+ * Dorobiæ obs³ugê b³êdów takich jak z³e nastêpniki
+ * Przygotowaæ program na mo¿liwoœæ wyst¹pienia z³oœliwego przypadku (linii która sk³ada siê z miliona znaków)
+ * Obs³uga sytuacji, gdy brakuje zakoñczenia bloku komentarza
+ */
+
 namespace Translator {
     Lexer::Lexer(Source* s): source(s) {
         source->next_line();
@@ -12,7 +19,7 @@ namespace Translator {
         bool gotit = false;
 
         std::regex word("(.*?)(\\s|$)");
-        std::regex str("(L?\".*\")(.*)");                    // TODO: Ogarn¹æ, jakie znaki mog¹ wystêpowaæ, albo jakie nie mog¹, zale¿y co ³atwiejsze
+        std::regex str("(L?\".*\")(.*)");
         std::regex con("(L?'.*')(.*)");
         std::regex hex("(0[xX][[:xdigit:]]+)(.*)");
         std::regex dbl("(\\d+\\.\\d*|\\d*\\.\\d+)(.*)");
@@ -25,130 +32,96 @@ namespace Translator {
         std::regex graphic("([()[\\]{},;.:?]|[-+&|]{2}|[-+=<>!%*\\/]=?)(.*)");
 
         std::smatch sm;         // string match
-        std::smatch wm;         // word match
         std::string line;
 
-        while(std::regex_search((line = source->get_line()), sm, word)) {
-            if(sm[1].str() == "") {                                                             // Get EOF token
-                if(sm[2].str() == "") {
+        while(!gotit && std::regex_search((line = source->get_line()), sm, word)) {
+            std::string match(sm[1].str());
+            std::string whitespace(sm[2].str());
+            std::string suffix(sm.suffix().str());
+            if(match == "") {                                                                   // Get EOF token
+                if(whitespace == "") {
                     token.set_type(Type::eof);
                     break;
                 }
             }
-            else if(std::regex_match((line = sm[1].str()), wm, str)) {                          // Get string literal token
+            else if(std::regex_match((line = match), sm, str)) {                                // Get string literal token
                 token.set_type(Type::STRING_LITERAL);
+                gotit = true;
             }
-            else if(std::regex_match(line, wm, con) || std::regex_match(line, wm, hex) ||       // Get constant token, either it's a char, hexadecimal,
-                std::regex_match(line, wm, dbl) || std::regex_match(line, wm, oct) ||           // floating point, octal or decimal
-                std::regex_match(line, wm, dec)) {
+            else if(std::regex_match(line, sm, con) || std::regex_match(line, sm, hex) ||       // Get constant token, either it's a char, hexadecimal,
+                std::regex_match(line, sm, dbl) || std::regex_match(line, sm, oct) ||           // floating point, octal or decimal
+                std::regex_match(line, sm, dec)) {
                 token.set_type(Type::CONSTANT);
+                gotit = true;
             }
-            else if(std::regex_match(line, wm, literals)) {                                     // Get identifier token or special literal token (if, else, etc.)
-                auto tmp = map.find(wm[1].str());
+            else if(std::regex_match(line, sm, literals)) {                                     // Get identifier token or special literal token (if, else, etc.)
+                auto tmp = map.find(sm[1].str());
                 if(tmp != map.end())
                     token.set_type(tmp->second);
                 else
                     token.set_type(Type::IDENTIFIER);
+                gotit = true;
             }
-            else if(std::regex_match(line, wm, line_comm)) {                                    // Skip line comments
-                source->next_line();
+            else if(std::regex_match(line, sm, line_comm)) {                                    // Skip line comments
+                if(source->next_line() == Status::SEOF)
+                    source->set_line("");
                 continue;
             }
-            else if(std::regex_match(line, wm, block_comm)) {                                   // Skip block comments
-                line = sm.suffix();
-                while(!std::regex_search(line, wm, end_block)) {
+            else if(std::regex_match(line, sm, block_comm)) {                                   // Skip block comments
+                line = suffix;
+                while(!std::regex_search(line, sm, end_block)) {
                     source->next_line();
                     line = source->get_line();
                 }
-                source->change_char(source->get_pos().char_num + wm[1].str().size());
-                source->change_col(source->get_pos().col_num + wm[1].str().size());
-                source->set_line(wm[2].str());
+                unsigned int size = static_cast<unsigned int>(sm[1].str().size());
+                source->change_char(source->get_pos().char_num + size);
+                source->change_col(source->get_pos().col_num + size);
+                source->set_line(sm[2].str());
                 continue;
             }
-            else if(std::regex_match(line, wm, graphic)) {                                      // Get other token or special other token (==, <=, etc.)
-                auto tmp = map.find(wm[1].str());
+            else if(std::regex_match(line, sm, graphic)) {                                      // Get other token or special other token (==, <=, etc.)
+                auto tmp = map.find(sm[1].str());
                 if(tmp != map.end())
                     token.set_type(tmp->second);
                 else
                     token.set_type(Type::other);
-            }
-            else
-                token.set_type(Type::none);                                                     // Unknown token
-
-            token.set_chars(wm[1].str());
-            source->change_char(source->get_pos().char_num + wm[1].str().size());
-            source->change_col(source->get_pos().col_num + wm[1].str().size());
-            if(wm[2].str() != "") {
-                source->set_line(wm[2].str() + sm[2].str() + std::string(sm.suffix()));
-                break;
+                gotit = true;
             }
             else {
-                source->set_line(sm.suffix());
+                token.set_type(Type::none);                                                     // Unknown token
                 gotit = true;
             }
 
-            if(sm[2].str() == "")
-                source->set_line("");
-            else if(sm[2].str() == "\n")
-                source->next_line();
-            else if(sm[2].str() == " ") {
+            if(gotit) {
+                token.set_chars(sm[1].str());
+                unsigned int size = static_cast<unsigned int>(sm[1].str().size());
+                source->change_char(source->get_pos().char_num + size);
+                source->change_col(source->get_pos().col_num + size);
+                if(sm[2].str() != "") {
+                    source->set_line(sm[2].str() + whitespace + suffix);
+                    break;
+                }
+                else
+                    source->set_line(suffix);
+            }
+            else
+                source->set_line(suffix);
+
+            if(whitespace == "\n") {
+                if(source->next_line() == Status::SEOF) 
+                    source->set_line("");
+                new_line = true;
+            }
+            else if(whitespace == " ") {
                 source->change_char(source->get_pos().char_num + 1);
                 source->change_col(source->get_pos().col_num + 1);
             }
-            else if(sm[2].str() == "\t") {
+            else if(whitespace == "\t") {
                 source->change_char(source->get_pos().char_num + 1);
                 int tab = TAB_LEN - (source->get_pos().col_num - 1 % TAB_LEN);
                 source->change_col(source->get_pos().col_num + tab);
             }
-
-            if(gotit)
-                break;
-        }
-																
+        }														
     }
-
-//    Token Lexer::get_other_token() {
-//        std::regex p("[!%&*+-/<=>|]");
-//
-//        Token tmp;
-//        std::string x = "";
-//        std::string text = "";
-//
-//        text = current_char;
-//
-//        if(std::regex_match(text, p)) {
-//            do {
-//#ifdef _DEBUG
-//                std::cout << current_char;
-//#endif
-//                x += current_char;
-//                current_char = source->next_char();
-//                if(source->is_new_line() || isspace(current_char)) break;
-//                text = current_char;
-//            } while(std::regex_match(text, p));
-//        }
-//        else {
-//#ifdef _DEBUG
-//            std::cout << current_char;
-//#endif
-//            if(current_char == '\\') current_char = source->next_char();
-//            // Error gdy nic nie ma po "\" (Ogarn¹æ)
-//            x += current_char;
-//            current_char = source->next_char();
-//        }
-//
-//        if(current_char != EOF) source->prev_char();
-//
-//        tmp.set_chars(x);
-//
-//        auto pair = map.find(x);
-//        if(pair != map.end()) {
-//            tmp.set_type(pair->second);
-//            return tmp;
-//        }
-//
-//        tmp.set_type(Type::other);
-//        return tmp;
-//    }
 
 };  //namespace Translator

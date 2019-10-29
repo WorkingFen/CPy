@@ -65,24 +65,21 @@ int main(int argc, char* argv[]) {
 	std::string fileName(argv[1]);
 	Translator::Source source(fileName);
 	Translator::Lexer scan(&source);
-	Translator::Parser parser;
-	Translator::Token token;
-	token.set_type(Translator::Type::none);
+	//Translator::Parser parser;
+	Translator::Token token(Translator::Type::none);
 
 	std::cout << "##### LEXER #####" << std::endl << std::endl;
 
 	while(token.get_type() != Translator::Type::eof) {
 		scan.get_next_token();
 		token = scan.get_token();
-#ifdef _DEBUG
-		//std::cout << scan.get_source()->is_new_line();
-#endif
 		cout_type(token);
-		if(token.get_type() != Translator::Type::eof) std::cout << ", ";
-		/*if(scan.get_source()->is_new_line()) {
+		if(token.get_type() != Translator::Type::eof) 
+            std::cout << ", ";
+		if(scan.is_new_line()) {
 			std::cout << std::endl;
-			scan.get_source()->set_new_line(false);
-		}*/
+			scan.set_new_line(false);
+		}
 		//parser.push_back(token);
 	}
 

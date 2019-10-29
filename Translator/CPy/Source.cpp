@@ -21,6 +21,7 @@ namespace Translator {
             exit(1);
         }
         else if(std::getline(file, line)) {
+            line += "\n";
             curr_position.row_num++;
 
             curr_position.col_num = 1;

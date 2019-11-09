@@ -33,5 +33,5 @@
 
 # VS files
 .vs
-*/Debug
-*/Release
+**/Debug
+**/Release

@@ -14,6 +14,25 @@ namespace Translator {
         file.close();
     }
 
+    void Source::getline_file() {
+        std::string tmp{};
+        std::getline(file, tmp);
+    }
+
+    std::string Source::getline_file(bool get_data) {
+        std::string tmp{};
+        std::getline(file, tmp);
+        if(get_data)
+            return tmp;
+        else
+            return "";
+    }
+
+    void Source::change_pos() {
+        change_char();
+        change_col();
+    }
+
     Status Source::next_line() {
         // Error while reading from file
         if(file.fail()) {

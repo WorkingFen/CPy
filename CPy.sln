@@ -7,6 +7,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CPy", "Translator\CPy\CPy.v
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "RegexTests", "RegexTests\RegexTests.vcxproj", "{937B7A95-87EF-4606-B53A-0A8809182BB8}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "ReadingTests", "ReadingTests\ReadingTests.vcxproj", "{CB05F897-2224-4D7A-B0F9-1023773EA6B9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -31,6 +33,14 @@ Global
 		{937B7A95-87EF-4606-B53A-0A8809182BB8}.Release|x64.Build.0 = Release|x64
 		{937B7A95-87EF-4606-B53A-0A8809182BB8}.Release|x86.ActiveCfg = Release|Win32
 		{937B7A95-87EF-4606-B53A-0A8809182BB8}.Release|x86.Build.0 = Release|Win32
+		{CB05F897-2224-4D7A-B0F9-1023773EA6B9}.Debug|x64.ActiveCfg = Debug|x64
+		{CB05F897-2224-4D7A-B0F9-1023773EA6B9}.Debug|x64.Build.0 = Debug|x64
+		{CB05F897-2224-4D7A-B0F9-1023773EA6B9}.Debug|x86.ActiveCfg = Debug|Win32
+		{CB05F897-2224-4D7A-B0F9-1023773EA6B9}.Debug|x86.Build.0 = Debug|Win32
+		{CB05F897-2224-4D7A-B0F9-1023773EA6B9}.Release|x64.ActiveCfg = Release|x64
+		{CB05F897-2224-4D7A-B0F9-1023773EA6B9}.Release|x64.Build.0 = Release|x64
+		{CB05F897-2224-4D7A-B0F9-1023773EA6B9}.Release|x86.ActiveCfg = Release|Win32
+		{CB05F897-2224-4D7A-B0F9-1023773EA6B9}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

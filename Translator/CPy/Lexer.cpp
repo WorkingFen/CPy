@@ -4,148 +4,120 @@
 #include <iostream>
 
 namespace Translator {
-    Lexer::Lexer(Source* s): source(s) {
-        //source->next_line();
-    }
+    Lexer::Lexer(Source* s): source(s) {}
 
     void Lexer::get_next_token() {
-        bool gotit = false;
-        std::string match{};
+        while(is_whitespace() || is_comment());
 
-        while(!gotit) {
-            while(is_whitespace());
-
-            if(static_cast<char>(source->peek_file()) == std::char_traits<char>::eof()) {       // Get EOF token
-                token.set_type(Type::eof);
-                break;
-            }
-            else if(match_str(match)) {                                                         // Get string literal token
-                token.set_type(Type::STRING_LITERAL);
-                gotit = true;
-            }
-            else if(match_con(match) || match_hex(match) || match_dbl(match) ||                 // Get constant token, either it's a char, hexadecimal, floating point, 
-                    match_oct(match) || match_dec(match)) {                                     // octal or decimal
-                token.set_type(Type::CONSTANT);
-                gotit = true;
-            }
-            else if(match_literals(match)) {                                                    // Get identifier token or special literal token (if, else, etc.)
-                auto tmp = map.find(match);
-                if(tmp != map.end())
-                    token.set_type(tmp->second);
-                else
-                    token.set_type(Type::IDENTIFIER);
-                gotit = true;
-            }
-            else if(match_line_comm()) {                                                        // Skip line comments
-                source->change_row();
-                source->change_char(1);
-                source->change_col(1);
-                continue;
-            }
-            else if(match_block_comm()) {                                                       // Skip block comments
-                continue;
-            }
-            else if(match_graphic(match)) {                                                     // Get other token or special other token (==, <=, etc.)
-                auto tmp = map.find(match);
-                if(tmp != map.end())
-                    token.set_type(tmp->second);
-                else
-                    token.set_type(Type::other);
-                gotit = true;
-            }
-            else {
-                token.set_type(Type::none);                                                     // Unknown token
-                gotit = true;
-            }
-
-            if(gotit) {
-                token.set_chars(match);
-                unsigned int size = static_cast<unsigned int>(match.size());
-                source->change_char(source->get_pos().char_num + size);
-                source->change_col(source->get_pos().col_num + size);
-            }
+        if(source->peek<char>() == std::char_traits<char>::eof()) {                         // Get EOF token
+            token.set_type(Type::eof);
         }
+        else if(match_str()) {                                                              // Get string literal token
+            token.set_type(Type::STRING_LITERAL);
+        }
+        else if(match_con() || match_hex() || match_dbl() ||                                // Get constant token, either it's a char, hexadecimal, floating point, 
+                match_oct() || match_dec()) {                                               // octal or decimal
+            token.set_type(Type::CONSTANT);
+        }
+        else if(match_literals()) {                                                         // Get identifier token or special literal token (if, else, etc.)
+            auto found = map.find(match);
+            if(found != map.end())
+                token.set_type(found->second);
+            else
+                token.set_type(Type::IDENTIFIER);
+        }
+        else if(match_graphic()) {                                                          // Get other token or special other token (==, <=, etc.)
+            auto found = map.find(match);
+            if(found != map.end())
+                token.set_type(found->second);
+            else
+                token.set_type(Type::other);
+        }
+        else {
+            token.set_type(Type::none);                                                     // Unknown token or an error
+            match.clear();
+        }
+
+        token.set_chars(match);
+        unsigned int size = static_cast<unsigned int>(match.size());
+        source->change_char(source->get_pos().char_num + size);
+        source->change_col(source->get_pos().col_num + size);
     }
 
-    bool Lexer::match_str(std::string& match) {
-        std::string tmp{};
+    bool Lexer::match_str() {
+        match.clear();
         char peeked;
         auto main_func = [&]() {
-            tmp += static_cast<char>(source->get_file());
-            while((peeked = static_cast<char>(source->peek_file())) != std::char_traits<char>::eof()) {
-                tmp += static_cast<char>(source->get_file());
-                if(peeked == '"' && !odd_escaping(tmp, tmp.size()-2)) {
-                    match = tmp;
+            match += source->get<char>();
+            while((peeked = source->peek<char>()) != std::char_traits<char>::eof()) {
+                match += source->get<char>();
+                if(peeked == '"' && !odd_escaping(match, match.size()-2))
                     return true;
-                }
             }
             return false;   //Throw an error here; And more exceptions
         };
 
-        if((peeked = static_cast<char>(source->peek_file())) == 'L') {
-            tmp += static_cast<char>(source->get_file());
-            if(static_cast<char>(source->peek_file()) == '"') {
-                main_func();
+        if((peeked = source->peek<char>()) == 'L') {
+            match += source->get<char>();
+            if(source->peek<char>() == '"') {
+                return main_func();
             }
             else {
-                source->unget_file();
+                source->unget();
                 return false;
             }
         }
         else if(peeked == '"') {
-            main_func();
+            return main_func();
         }
         else
             return false;
     }
 
-    bool Lexer::match_con(std::string& match) {
-        std::string tmp{};
+    bool Lexer::match_con() {
+        match.clear();
         char peeked;
         auto main_func = [&]() {
-            tmp += static_cast<char>(source->get_file());
-            for(int i = 0; i < 3 && (peeked = static_cast<char>(source->peek_file())) != std::char_traits<char>::eof(); ++i) {
-                tmp += static_cast<char>(source->get_file());
-                if(peeked == '\'' && !odd_escaping(tmp, tmp.size() - 2)) {
-                    match = tmp;
+            match += source->get<char>();
+            for(int i = 0; i < 3 && (peeked = source->peek<char>()) != std::char_traits<char>::eof(); ++i) {
+                match += source->get<char>();
+                if(peeked == '\'' && !odd_escaping(match, match.size() - 2))
                     return true;
-                }
             }
             return false;   //Throw an error here; And more exceptions
         };
 
-        if((peeked = static_cast<char>(source->peek_file())) == 'L') {
-            tmp += static_cast<char>(source->get_file());
-            if(static_cast<char>(source->peek_file()) == '\'') {
-                main_func();
+        if((peeked = source->peek<char>()) == 'L') {
+            match += source->get<char>();
+            if(source->peek<char>() == '\'') {
+                return main_func();
             }
             else {
-                source->unget_file();
+                source->unget();
                 return false;
             }
         }
         else if(peeked == '\'') {
-            main_func();
+            return main_func();
         }
         else
             return false;
     }
 
-    bool Lexer::match_hex(std::string& match) {
-        std::string tmp{};
+    bool Lexer::match_hex() {
+        match.clear();
         char peeked;
 
-        if(static_cast<char>(source->peek_file()) == '0') {
-            tmp += static_cast<char>(source->get_file());
-            if((peeked = static_cast<char>(source->peek_file())) == 'x' || peeked == 'X') {
-                tmp += static_cast<char>(source->get_file());
-                while(isxdigit(source->peek_file()))
-                    tmp += static_cast<char>(source->get_file());
-                match = tmp;
+        if(source->peek<char>() == '0') {
+            match += source->get<char>();
+            if((peeked = source->peek<char>()) == 'x' || peeked == 'X') {
+                match += source->get<char>();
+                while(isxdigit(source->peek<int>()))
+                    match += source->get<char>();
                 return true;
             }
             else {
-                source->unget_file();
+                source->unget();
                 return false;
             }
         }
@@ -153,37 +125,35 @@ namespace Translator {
             return false;
     }
 
-    bool Lexer::match_dbl(std::string& match) {
-        std::string tmp{};
-        std::streampos starting_position = source->tellg_file();
+    bool Lexer::match_dbl() {
+        match.clear();
+        std::streampos starting_position = source->tellg();
 
-        if(static_cast<char>(source->peek_file()) == '.') {
-            tmp += static_cast<char>(source->get_file());
-            if(isdigit(source->peek_file())) {
-                tmp += static_cast<char>(source->get_file());
-                while(isdigit(source->peek_file()))
-                    tmp += static_cast<char>(source->get_file());
-                match = tmp;
+        if(source->peek<char>() == '.') {
+            match += source->get<char>();
+            if(isdigit(source->peek<int>())) {
+                match += source->get<char>();
+                while(isdigit(source->peek<int>()))
+                    match += source->get<char>();
                 return true;
             }
             else {
-                source->unget_file();
+                source->unget();
                 return false;
             }
         }
-        else if(isdigit(source->peek_file())) {
-            tmp += static_cast<char>(source->get_file());
-            while(isdigit(source->peek_file()))
-                tmp += static_cast<char>(source->get_file());
-            if(static_cast<char>(source->peek_file()) == '.') {
-                tmp += static_cast<char>(source->get_file());
-                while(isdigit(source->peek_file()))
-                    tmp += static_cast<char>(source->get_file());
-                match = tmp;
+        else if(isdigit(source->peek<int>())) {
+            match += source->get<char>();
+            while(isdigit(source->peek<int>()))
+                match += source->get<char>();
+            if(source->peek<char>() == '.') {
+                match += source->get<char>();
+                while(isdigit(source->peek<int>()))
+                    match += source->get<char>();
                 return true;
             }
             else {
-                source->seekg_file(starting_position);
+                source->seekg(starting_position);
                 return false;
             }
         }
@@ -191,21 +161,20 @@ namespace Translator {
             return false;
     }
 
-    bool Lexer::match_oct(std::string& match) {
-        std::string tmp{};
+    bool Lexer::match_oct() {
+        match.clear();
         char peeked;
 
-        if(static_cast<char>(source->peek_file()) == '0') {
-            tmp += static_cast<char>(source->get_file());
-            if((peeked = static_cast<char>(source->peek_file())) >= '0' && peeked <= '7') {
-                tmp += static_cast<char>(source->get_file());
-                while((peeked = static_cast<char>(source->peek_file())) >= '0' && peeked <= '7')
-                    tmp += static_cast<char>(source->get_file());
-                match = tmp;
+        if(source->peek<char>() == '0') {
+            match += source->get<char>();
+            if((peeked = source->peek<char>()) >= '0' && peeked <= '7') {
+                match += source->get<char>();
+                while((peeked = source->peek<char>()) >= '0' && peeked <= '7')
+                    match += source->get<char>();
                 return true;
             }
             else {
-                source->unget_file();
+                source->unget();
                 return false;
             }
         }
@@ -213,40 +182,36 @@ namespace Translator {
             return false;
     }
 
-    bool Lexer::match_dec(std::string& match) {
-        std::string tmp{};
+    bool Lexer::match_dec() {
+        match.clear();
         char peeked;
 
-        if(static_cast<char>(source->peek_file()) == '0') {
-            tmp += static_cast<char>(source->get_file());
-            if(isdigit(source->peek_file())) {
-                source->unget_file();
+        if(source->peek<char>() == '0') {
+            match += source->get<char>();
+            if(isdigit(source->peek<int>())) {
+                source->unget();
                 return false;
             }
-            else {
-                match = tmp;
+            else
                 return true;
-            }
         }
-        else if((peeked = static_cast<char>(source->peek_file())) >= '1' && peeked <= '9') {
-            tmp += static_cast<char>(source->get_file());
-            while(isdigit(source->peek_file()))
-                tmp += static_cast<char>(source->get_file());
-            match = tmp;
+        else if((peeked = source->peek<char>()) >= '1' && peeked <= '9') {
+            match += source->get<char>();
+            while(isdigit(source->peek<int>()))
+                match += source->get<char>();
             return true;
         }
         else
             return false;
     }
 
-    bool Lexer::match_literals(std::string& match) {
-        std::string tmp{};
+    bool Lexer::match_literals() {
+        match.clear();
 
-        if(isword(source->peek_file()) && !isdigit(source->peek_file())) {
-            tmp += static_cast<char>(source->get_file());
-            while(isword(source->peek_file()))
-                tmp += static_cast<char>(source->get_file());
-            match = tmp;
+        if(isword(source->peek<int>()) && !isdigit(source->peek<int>())) {
+            match += source->get<char>();
+            while(isword(source->peek<int>()))
+                match += source->get<char>();
             return true;
         }
         else
@@ -254,15 +219,15 @@ namespace Translator {
     }
 
     bool Lexer::match_line_comm() {
-        if(static_cast<char>(source->peek_file()) == '/') {
-            source->get_file();
-            if(static_cast<char>(source->peek_file()) == '/') {
-                source->get_file();
-                source->getline_file();
+        if(source->peek<char>() == '/') {
+            source->get<int>();
+            if(source->peek<char>() == '/') {
+                source->get<int>();
+                source->skipline();
                 return true;
             }
             else {
-                source->unget_file();
+                source->unget();
                 return false;
             }
         }
@@ -271,24 +236,22 @@ namespace Translator {
     }
     
     bool Lexer::match_block_comm() {
-        if(static_cast<char>(source->peek_file()) == '/') {
-            source->get_file();
-            source->change_pos();
-            if(static_cast<char>(source->peek_file()) == '*') {
-                while(static_cast<char>(source->get_file()) != std::char_traits<char>::eof()) {
-                    source->change_pos();
-                    if(static_cast<char>(source->peek_file()) == '\n') {
-                        source->change_row();
-                        source->change_char(1);
-                        source->change_col(1);
+        if(source->peek<char>() == '/') {
+            source->get<int>();
+            source->next_pos();
+            if(source->peek<char>() == '*') {
+                while(source->get<char>() != std::char_traits<char>::eof()) {
+                    source->next_pos();
+                    if(source->peek<char>() == '\n') {
+                        source->new_line_pos();
                     }
-                    else if(static_cast<char>(source->peek_file()) == '*') {
-                        source->get_file();
-                        source->change_pos();
-                        char peeked = static_cast<char>(source->peek_file());
+                    else if(source->peek<char>() == '*') {
+                        source->get<int>();
+                        source->next_pos();
+                        char peeked = source->peek<char>();
                         if(peeked == '/') {
-                            source->get_file();
-                            source->change_pos();
+                            source->get<int>();
+                            source->next_pos();
                             return true;
                         }
                         else if(peeked == std::char_traits<char>::eof())
@@ -298,7 +261,7 @@ namespace Translator {
                 return false;   //Throw an error here
             }
             else {
-                source->unget_file();
+                source->unget();
                 return false;
             }
         }
@@ -306,10 +269,10 @@ namespace Translator {
             return false;
     }
 
-    bool Lexer::match_graphic(std::string& match) {
-        std::string tmp{};
+    bool Lexer::match_graphic() {
+        match.clear();
 
-        switch(static_cast<char>(source->peek_file())) {
+        switch(source->peek<char>()) {
             case '(':
             case ')':
             case '[':
@@ -321,20 +284,18 @@ namespace Translator {
             case '.':
             case ':':
             case '?': {
-                tmp += static_cast<char>(source->get_file());
-                match = tmp;
+                match = source->get<char>();
                 return true;
             }
             case '-':
             case '+': {
-                tmp += static_cast<char>(source->get_file());
-                if(static_cast<char>(source->peek_file()) == tmp.back()) {
-                    tmp += static_cast<char>(source->get_file());
-                    match = tmp;
+                match = source->get<char>();
+                if(source->peek<char>() == match.back()) {
+                    match += source->get<char>();
                     return true;
                 }
                 else
-                    source->unget_file();
+                    source->unget();
             }
             case '=':
             case '<':
@@ -343,22 +304,20 @@ namespace Translator {
             case '%':
             case '*':
             case '/': {
-                tmp = static_cast<char>(source->get_file());
-                if(static_cast<char>(source->peek_file()) == '=')
-                    tmp += static_cast<char>(source->get_file());
-                match = tmp;
+                match = source->get<char>();
+                if(source->peek<char>() == '=')
+                    match += source->get<char>();
                 return true;
             }
             case '&':
             case '|': {
-                tmp += static_cast<char>(source->get_file());
-                if(static_cast<char>(source->peek_file()) == tmp.back()) {
-                    tmp += static_cast<char>(source->get_file());
-                    match = tmp;
+                match = source->get<char>();
+                if(source->peek<char>() == match.back()) {
+                    match += source->get<char>();
                     return true;
                 }
                 else {
-                    source->unget_file();
+                    source->unget();
                     return false;
                 }
             }
@@ -374,27 +333,36 @@ namespace Translator {
     }
 
     bool Lexer::is_whitespace() {
-        char peeked = static_cast<char>(source->peek_file());
+        char peeked = source->peek<char>();
         if(peeked == '\n') {
-            source->get_file();
-            source->change_row();
-            source->change_char(1);
-            source->change_col(1);
+            source->get<int>();
+            source->new_line_pos();
             new_line = true;
             return true;
         }
         else if(peeked == ' ') {
-            source->get_file();
-            source->change_pos();
+            source->get<int>();
+            source->next_pos();
             return true;
         }
         else if(peeked == '\t') {
-            source->get_file();
-            source->change_char();
+            source->get<int>();
+            source->next_char();
             int tab = TAB_LEN - (source->get_pos().col_num - 1 % TAB_LEN);
             source->change_col(source->get_pos().col_num + tab);
             return true;
         }
+        else
+            return false;
+    }
+
+    bool Lexer::is_comment() {
+        if(match_line_comm()) {                                                         // Skip line comments
+            source->new_line_pos();
+            return true;
+        }
+        else if(match_block_comm())                                                     // Skip block comments
+            return true;
         else
             return false;
     }

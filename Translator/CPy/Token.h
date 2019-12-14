@@ -16,8 +16,8 @@ namespace Translator {
 	};
 
 	class Token {
-		Type type{ Type::eof };
-		std::string chars;
+		Type type{ Type::none };
+        std::string chars{};
 
 	public:
 		Token() = default;
@@ -25,6 +25,7 @@ namespace Translator {
 
 		void set_type(Type value) { type = value; }
 		Type get_type() const { return type; }
+
 		void set_chars(std::string value) { chars = value; }
 		std::string get_chars() const { return chars; }
 	};

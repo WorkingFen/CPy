@@ -62,8 +62,8 @@ int main(int argc, char* argv[]) {
 		return -1;
 	}
 
-	std::string fileName(argv[1]);
-	Translator::Source source(fileName);
+	std::string streamName(argv[1]);
+	Translator::Source<std::ifstream> source(streamName);
 	Translator::Lexer scan(&source);
 	//Translator::Parser parser;
 	Translator::Token token(Translator::Type::none);

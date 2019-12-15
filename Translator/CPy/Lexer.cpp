@@ -4,9 +4,11 @@
 #include <iostream>
 
 namespace Translator {
-    Lexer::Lexer(Source* s): source(s) {}
+    template<typename S>
+    Lexer<S>::Lexer(Source<S>* s): source(s) {}
 
-    void Lexer::get_next_token() {
+    template<typename S>
+    void Lexer<S>::get_next_token() {
         while(is_whitespace() || is_comment());
 
         if(source->peek<char>() == std::char_traits<char>::eof()) {                         // Get EOF token
@@ -44,7 +46,8 @@ namespace Translator {
         source->change_col(source->get_pos().col_num + size);
     }
 
-    bool Lexer::match_str() {
+    template<typename S>
+    bool Lexer<S>::match_str() {
         match.clear();
         char peeked;
         auto main_func = [&]() {
@@ -74,7 +77,8 @@ namespace Translator {
             return false;
     }
 
-    bool Lexer::match_con() {
+    template<typename S>
+    bool Lexer<S>::match_con() {
         match.clear();
         char peeked;
         auto main_func = [&]() {
@@ -104,7 +108,8 @@ namespace Translator {
             return false;
     }
 
-    bool Lexer::match_hex() {
+    template<typename S>
+    bool Lexer<S>::match_hex() {
         match.clear();
         char peeked;
 
@@ -125,7 +130,8 @@ namespace Translator {
             return false;
     }
 
-    bool Lexer::match_dbl() {
+    template<typename S>
+    bool Lexer<S>::match_dbl() {
         match.clear();
         std::streampos starting_position = source->tellg();
 
@@ -161,7 +167,8 @@ namespace Translator {
             return false;
     }
 
-    bool Lexer::match_oct() {
+    template<typename S>
+    bool Lexer<S>::match_oct() {
         match.clear();
         char peeked;
 
@@ -182,7 +189,8 @@ namespace Translator {
             return false;
     }
 
-    bool Lexer::match_dec() {
+    template<typename S>
+    bool Lexer<S>::match_dec() {
         match.clear();
         char peeked;
 
@@ -205,7 +213,8 @@ namespace Translator {
             return false;
     }
 
-    bool Lexer::match_literals() {
+    template<typename S>
+    bool Lexer<S>::match_literals() {
         match.clear();
 
         if(isword(source->peek<int>()) && !isdigit(source->peek<int>())) {
@@ -218,7 +227,8 @@ namespace Translator {
             return false;
     }
 
-    bool Lexer::match_line_comm() {
+    template<typename S>
+    bool Lexer<S>::match_line_comm() {
         if(source->peek<char>() == '/') {
             source->get<int>();
             if(source->peek<char>() == '/') {
@@ -235,7 +245,8 @@ namespace Translator {
             return false;
     }
     
-    bool Lexer::match_block_comm() {
+    template<typename S>
+    bool Lexer<S>::match_block_comm() {
         if(source->peek<char>() == '/') {
             source->get<int>();
             source->next_pos();
@@ -269,7 +280,8 @@ namespace Translator {
             return false;
     }
 
-    bool Lexer::match_graphic() {
+    template<typename S>
+    bool Lexer<S>::match_graphic() {
         match.clear();
 
         switch(source->peek<char>()) {
@@ -326,13 +338,15 @@ namespace Translator {
         }
     }
 
-    bool Lexer::odd_escaping(std::string& str, size_t start_pos) {
+    template<typename S>
+    bool Lexer<S>::odd_escaping(std::string& str, size_t start_pos) {
         int no_escaping{0};
         for(int i = 0; str.at(start_pos - i) == '\\'; ++i, ++no_escaping);
         return (no_escaping % 2);
     }
 
-    bool Lexer::is_whitespace() {
+    template<typename S>
+    bool Lexer<S>::is_whitespace() {
         char peeked = source->peek<char>();
         if(peeked == '\n') {
             source->get<int>();
@@ -356,7 +370,8 @@ namespace Translator {
             return false;
     }
 
-    bool Lexer::is_comment() {
+    template<typename S>
+    bool Lexer<S>::is_comment() {
         if(match_line_comm()) {                                                         // Skip line comments
             source->new_line_pos();
             return true;
@@ -366,5 +381,9 @@ namespace Translator {
         else
             return false;
     }
+
+    // If you want to use Lexer class with other parameters, you have to create line for it like below
+    template class Lexer<std::ifstream>;
+    template class Lexer<std::istringstream>;
 
 };  //namespace Translator

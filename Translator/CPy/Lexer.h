@@ -6,12 +6,13 @@
 #include <regex>
 
 namespace Translator {
+    template<typename S>
 	class Lexer {
     private:
         bool new_line{false};
         std::string match{};
-		Source* source;
-		Token token;
+        Source<S>* source{};
+        Token token{};
 
         std::unordered_map<std::string, Type> map{
             {"++", Type::INC_OP},
@@ -52,10 +53,13 @@ namespace Translator {
         };
 
 	public:
-		Lexer(Source*);
+        Lexer() = default;
+		Lexer(Source<S>*);
 
         bool is_new_line() const { return new_line; }
         void set_new_line(bool value) { new_line = value; }
+
+        std::string get_match() const { return match; }
 
 		Token get_token() const { return token; }
 

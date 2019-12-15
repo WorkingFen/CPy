@@ -1,8 +1,9 @@
 #ifndef SOURCE_H
 #define SOURCE_H
 
-#include <fstream>
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <string>
 
 #define TAB_LEN 4
@@ -14,22 +15,25 @@ namespace Translator {
         unsigned int char_num{ 1 };
 	};
 
+    template<typename S>
 	class Source {
-		std::ifstream file;
+        S upper_stream;
+		std::istream& stream = upper_stream;
 		TextPos curr_position;
 
 	public:
-		Source(const std::string fileName);
+        Source() = default;
+		Source(const std::string streamName);
 		~Source();
 
         template<typename T>
-        T peek() { return static_cast<T>(file.peek()); }
+        T peek() { return static_cast<T>(stream.peek()); }
         template<typename T>
-        T get() { return static_cast<T>(file.get()); }
-        void unget() { file.unget(); }
-        void seekg(std::streampos pos) { file.seekg(pos); }
-        std::streampos tellg() { return file.tellg(); }
-        void skipline() { file.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); }
+        T get() { return static_cast<T>(stream.get()); }
+        void unget() { stream.unget(); }
+        void seekg(std::streampos pos) { stream.seekg(pos); }
+        std::streampos tellg() { return stream.tellg(); }
+        void skipline() { stream.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); }
 
 		const TextPos& get_pos() const { return curr_position; }
         void next_char() { ++curr_position.char_num; }

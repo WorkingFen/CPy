@@ -19,14 +19,14 @@ bool ReadingTest::match_str(const std::string& line, std::string& match) {
     if((peeked = static_cast<char>(peek_file(line))) == 'L') {
         tmp += static_cast<char>(get_file(line));
         if(static_cast<char>(peek_file(line)) == '"')
-            main_func();
+            return main_func();
         else {
             unget_file();
             return false;
         }
     }
     else if(peeked == '"')
-        main_func();
+        return main_func();
     else
         return false;
 }
@@ -49,14 +49,14 @@ bool ReadingTest::match_con(const std::string& line, std::string& match) {
     if((peeked = static_cast<char>(peek_file(line))) == 'L') {
         tmp += static_cast<char>(get_file(line));
         if(static_cast<char>(peek_file(line)) == '\'')
-            main_func();
+            return main_func();
         else {
             unget_file();
             return false;
         }
     }
     else if(peeked == '\'')
-        main_func();
+        return main_func();
     else
         return false;
 }

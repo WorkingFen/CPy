@@ -11,24 +11,25 @@ namespace Translator {
     void Lexer<S>::get_next_token() {
         while(is_whitespace() || is_comment());
 
-        if(source->peek<char>() == std::char_traits<char>::eof()) {                         // Get EOF token
+        if(source->peek<char>() == std::char_traits<char>::eof()) {     // Get EOF token
             token.set_type(Type::eof);
+            match.clear();
         }
-        else if(match_str()) {                                                              // Get string literal token
+        else if(match_str()) {                                          // Get string literal token
             token.set_type(Type::STRING_LITERAL);
         }
-        else if(match_con() || match_hex() || match_dbl() ||                                // Get constant token, either it's a char, hexadecimal, floating point, 
-                match_oct() || match_dec()) {                                               // octal or decimal
+        else if(match_con() || match_hex() || match_dbl() ||            // Get constant token, either it's a char, hexadecimal, floating point, 
+                match_oct() || match_dec()) {                           // octal or decimal
             token.set_type(Type::CONSTANT);
         }
-        else if(match_literals()) {                                                         // Get identifier token or special literal token (if, else, etc.)
+        else if(match_literals()) {                                     // Get identifier token or special literal token (if, else, etc.)
             auto found = map.find(match);
             if(found != map.end())
                 token.set_type(found->second);
             else
                 token.set_type(Type::IDENTIFIER);
         }
-        else if(match_graphic()) {                                                          // Get other token or special other token (==, <=, etc.)
+        else if(match_graphic()) {                                      // Get other token or special other token (==, <=, etc.)
             auto found = map.find(match);
             if(found != map.end())
                 token.set_type(found->second);
@@ -36,7 +37,7 @@ namespace Translator {
                 token.set_type(Type::other);
         }
         else {
-            token.set_type(Type::none);                                                     // Unknown token or an error
+            token.set_type(Type::error);                                // Unknown token; An error
             match.clear();
         }
 
@@ -351,7 +352,7 @@ namespace Translator {
         if(peeked == '\n') {
             source->get<int>();
             source->new_line_pos();
-            new_line = true;
+            set_new_line(true);
             return true;
         }
         else if(peeked == ' ') {
@@ -372,11 +373,11 @@ namespace Translator {
 
     template<typename S>
     bool Lexer<S>::is_comment() {
-        if(match_line_comm()) {                                                         // Skip line comments
+        if(match_line_comm()) {       // Skip line comments
             source->new_line_pos();
             return true;
         }
-        else if(match_block_comm())                                                     // Skip block comments
+        else if(match_block_comm())   // Skip block comments
             return true;
         else
             return false;

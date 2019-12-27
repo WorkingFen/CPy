@@ -35,7 +35,8 @@ INSTANTIATE_TEST_CASE_P(MatchStr, LexerFixtureParametrizedStr,
         std::make_tuple("L\"Test string\")", "L\"Test string\"", true),
         std::make_tuple("\"Test string\")", "\"Test string\"", true),
         std::make_tuple("\"Test string\\\"\"", "\"Test string\\\"\"", true),
-        std::make_tuple("\"Test string", "", false)
+        std::make_tuple("\"Test string", "", false),
+        std::make_tuple("\"Test string\\\\\"\"", "\"Test string\\\\\"", true)
     ),
 );
 

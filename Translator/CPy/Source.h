@@ -10,7 +10,7 @@
 
 namespace Translator {
 	struct TextPos {
-		unsigned int row_num{ 0 };		// Numer wiersza, znaku czytanego, znaku pisanego
+		unsigned int row_num{ 0 };		// Row number, column number and character number
         unsigned int col_num{ 1 };
         unsigned int char_num{ 1 };
 	};

@@ -65,40 +65,35 @@ int main(int argc, char* argv[]) {
 	std::string streamName(argv[1]);
 	Translator::Source<std::ifstream> source(streamName);
 	Translator::Lexer scan(&source);
-	//Translator::Parser parser;
-	Translator::Token token(Translator::Type::none);
+	Translator::Parser parser;
+	Translator::Token token;
 
 	std::cout << "##### LEXER #####" << std::endl << std::endl;
-
 	while(token.get_type() != Translator::Type::eof) {
 		scan.get_next_token();
 		token = scan.get_token();
+        if(scan.is_new_line()) {
+            std::cout << std::endl;
+            scan.set_new_line(false);
+        }
 		cout_type(token);
 		if(token.get_type() != Translator::Type::eof) 
             std::cout << ", ";
-		if(scan.is_new_line()) {
-			std::cout << std::endl;
-			scan.set_new_line(false);
-		}
-		//parser.push_back(token);
+		parser.push_back(token);
 	}
 
-	/*for(auto i : parser.get_tokens()) {
-		if(i.get_type() != Translator::Type::eof) {
-			std::cout << std::endl << "____" << i.get_chars() << "______" << std::endl;
-		}
-		else {
-			std::cout << std::endl << "__________" << std::endl;
-		}
+#ifdef _DEBUG
+	for(auto i : parser.get_tokens()) {
+		std::cout << std::endl << "___" << i.get_chars() << "___: ";
 		cout_type(i);
-	}*/
-	// Check semantics here
+	}
+#endif
 
-	/*std::cout << std::endl << std::endl << "##### PARSER #####" << std::endl;
-
+	std::cout << std::endl << std::endl << "##### PARSER #####" << std::endl;
 	parser.start_parsing();
+
 	std::cout << std::endl << std::endl << "### Drzewo skladniowe ###" << std::endl << std::endl;
-	parser.get_root().read_node(0);*/
+	parser.get_root().read_node();
 
 	return 0;
 }

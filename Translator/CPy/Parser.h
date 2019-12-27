@@ -9,71 +9,72 @@
 
 namespace Translator {
 	class Parser_Exception : public std::exception {
-		private:
-			std::string error_msg;
+	private:
+		std::string error_msg;
 
-		public:
-			Parser_Exception(std::string msg) : error_msg(msg) {}
+	public:
+		Parser_Exception(std::string msg) : error_msg(msg) {}
 
-			virtual const char* what() const throw() {
-				return error_msg.c_str();
-			}
+		virtual const char* what() const throw() {
+			return error_msg.c_str();
+		}
 	};
 
 	/*class Match_Exception : public std::exception {
-		private: 
-			const char* func;
-			std::string match_msg;
+	private: 
+		const char* func;
+		std::string match_msg;
 		
-		public:
-			Match_Exception(const char* f) : func(f) {
-				match_msg = "X: ";
-				match_msg += func;
-			}
+	public:
+		Match_Exception(const char* f) : func(f) {
+			match_msg = "X: ";
+			match_msg += func;
+		}
 
-			virtual const char* what() const throw() {
-				return match_msg.c_str();
-			}
+		virtual const char* what() const throw() {
+			return match_msg.c_str();
+		}
 	};*/
 
 	class Node {
-		private:
-			Token token;
-			const char* func_name;
-			std::vector<Node> children;
-		public:
-			Node() = default;
-			Node(Token t, const char* f) : token(t), func_name(f) {}
+	private:
+        Token token{};
+		const char* func_name = nullptr;
+		std::vector<Node> children;
 
-			void set_token(Token t) { token = t; }
-			void push_back(const Node n) { children.push_back(n); }
-			const char* get_func() { return func_name; }
-			Type get_type() { return token.get_type(); }
+	public:
+		Node() = default;
+		Node(Token t, const char* f) : token(t), func_name(f) {}
 
-			void read_node(int rec) {
-				if(token.get_type() == Type::parsing) {
-					for(int i = 0; i < rec; i++) std::cout << "  ";
-					std::cout << func_name << std::endl;
-				}
-				else {
-					for(int i = 0; i < rec; i++) std::cout << "..";
-					std::cout << token.get_chars() << std::endl;
-				}
+		void set_token(Token t) { token = t; }
+		void push_back(const Node n) { children.push_back(n); }
+		const char* get_func() { return func_name; }
+		Type get_type() { return token.get_type(); }
 
-				for(auto node : children) node.read_node(rec + 1);
+		void read_node(int rec = 0) {
+			if(token.get_type() == Type::parsing) {
+				for(int i = 0; i < rec; i++) std::cout << "  ";
+				std::cout << func_name << std::endl;
 			}
+			else {
+				for(int i = 0; i < rec; i++) std::cout << "..";
+				std::cout << token.get_chars() << std::endl;
+			}
+
+			for(auto node : children) node.read_node(rec + 1);
+		}
 	};
 
 	/*class Tokenizer {
-		private:
-			int& t_val;
-			int t_new;
+	private:
+		int& t_val;
+		int t_new;
 
-		public:
-			Tokenizer(int& t): t_val(t), t_new(t) {}
+	public:
+		Tokenizer(int& t): t_val(t), t_new(t) {}
 
-			void inc(int i) { t_new += i; }
-			void commit() { t_val = t_new; }
+		void inc(int i) { t_new += i; }
+		void commit() { t_val = t_new; }
 	};*/
 
 	class Parser {
@@ -139,7 +140,6 @@ namespace Translator {
 		Parser() = default;
 
 		void push_back(Token value) { tokens.push_back(value); }
-		const std::vector<Token> get_tokens() const { return tokens; }
 		void start_parsing();
 		Node get_root() { return root; }
 	};

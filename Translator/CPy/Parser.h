@@ -2,6 +2,7 @@
 #define PARSER_H
 
 #include "Token.h"
+#include <stack>
 #include <vector>
 #include <exception>
 #include <iostream>
@@ -65,76 +66,69 @@ namespace Translator {
 		}
 	};
 
-	/*class Tokenizer {
-	private:
-		int& t_val;
-		int t_new;
-
-	public:
-		Tokenizer(int& t): t_val(t), t_new(t) {}
-
-		void inc(int i) { t_new += i; }
-		void commit() { t_val = t_new; }
-	};*/
-
 	class Parser {
+        std::stack<int> offset;
 		std::vector<Token> tokens;
 		Node root;
-		bool end = false;
 
-		void func_log(int, const char*);
-		/*bool is_curr_token(int, std::string);
-		bool is_curr_token(int, Type);*/
+		void func_log(const char*);
 
-		Node primary_expression(int&);
-		Node postfix_expression(int&, bool);
-		Node argument_expression_list(int&);
-		Node unary_expression(int&);
-		Node unary_operator(int&);
-		Node cast_expression(int&);
-		Node multiplicative_expression(int&);
-		Node additive_expression(int&);
-		Node relational_expression(int&);
-		Node equality_expression(int&);
-		Node logical_and_expression(int&);
-		Node logical_or_expression(int&);
-		Node conditional_expression(int&);
-		Node assignment_expression(int&);
-		Node assignment_operator(int&);
-		Node expression(int&);
-		Node declaration(int&);
-		Node declaration_specifiers(int&);
-		Node init_declarator_list(int&);
-		Node init_declarator(int&);
-		Node type_specifier(int&);
-		Node struct_or_union_specifier(int&);
-		Node struct_declaration_list(int&);
-		Node specifier_qualifier_list(int&);
-		Node struct_declarator_list(int&);
-		Node struct_declarator(int&);
-		Node enum_specifier(int&);
-		Node enumerator_list(int&);
-		Node enumerator(int&);
-		Node direct_declarator(int&, bool);
-		Node parameter_list(int&);
-		Node parameter_declaration(int&);
-		Node identifier_list(int&);
-		Node type_name(int&);
-		Node direct_abstract_declarator(int&, bool);
-		Node initializer(int&);
-		Node initializer_list(int&);
-		Node statement(int&);
-		Node labeled_statement(int&);
-		Node compound_statement(int&);
-		Node declaration_list(int&);
-		Node statement_list(int&);
-		Node expression_statement(int&);
-		Node selection_statement(int&);
-		Node iteration_statement(int&);
-		Node jump_statement(int&);
-		Node translation_unit(int);
-		Node external_declaration(int&);
-		Node function_definition(int&);
+		Node primary_expression();
+		Node postfix_expression(bool);
+		Node argument_expression_list();
+		Node unary_expression();
+		Node unary_operator();
+		Node cast_expression();
+		Node multiplicative_expression();
+		Node additive_expression();
+		Node relational_expression();
+		Node equality_expression();
+		Node logical_and_expression();
+		Node logical_or_expression();
+		Node conditional_expression();
+		Node assignment_expression();
+		Node assignment_operator();
+		Node expression();
+		Node declaration();
+		Node declaration_specifiers();
+		Node init_declarator_list();
+		Node init_declarator();
+		Node type_specifier();
+		Node struct_or_union_specifier();
+		Node struct_declaration_list();
+		Node specifier_qualifier_list();
+		Node struct_declarator_list();
+		Node struct_declarator();
+		Node enum_specifier();
+		Node enumerator_list();
+		Node enumerator();
+		Node direct_declarator(bool);
+		Node parameter_list();
+		Node parameter_declaration();
+		Node identifier_list();
+		Node type_name();
+		Node direct_abstract_declarator(bool);
+		Node initializer();
+		Node initializer_list();
+		Node statement();
+		Node labeled_statement();
+		Node compound_statement();
+		Node declaration_list();
+		Node statement_list();
+		Node expression_statement();
+		Node selection_statement();
+		Node iteration_statement();
+		Node jump_statement();
+		Node translation_unit();
+		Node external_declaration();
+		Node function_definition();
+
+        bool check_type(Node node, Type type = Type::none) { return node.get_type() == type; }
+        bool check_type(int token_num, Type type) { return tokens[token_num].get_type() == type; }
+        bool check_char(int token_num, std::string ch) { return tokens[token_num].get_chars() == ch; }
+
+        void prepare() { offset.emplace(offset.top()); }
+        void commit(int inc);
 
 	public:
 		Parser() = default;

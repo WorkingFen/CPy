@@ -52,6 +52,12 @@ namespace Translator {
             {"return", Type::RETURN}
         };
 
+        bool odd_escaping(std::string& str, size_t start_pos);
+        bool isword(int c) { return (isalnum(c) || c == '_'); }
+
+        bool is_whitespace();
+        bool is_comment();
+
 	public:
         Lexer() = default;
 		Lexer(Source<S>*);
@@ -75,12 +81,6 @@ namespace Translator {
         bool match_line_comm();
         bool match_block_comm();
         bool match_graphic();
-
-        bool odd_escaping(std::string& str, size_t start_pos);
-        bool isword(int c) { return (isalnum(c) || c == '_'); }
-
-        bool is_whitespace();
-        bool is_comment();
 	};
 }
 

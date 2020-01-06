@@ -824,12 +824,8 @@ namespace Translator {
 		    }
 	    }
 
-	    if(found == 2) {
-		    commit(1);
-		    return p_node;
-	    }
-	    else if(found == 1) {
-		    commit(0);
+	    if(found) {
+		    commit(found - 1);
 		    return p_node;
 	    }
 	    else {

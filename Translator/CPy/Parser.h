@@ -41,11 +41,16 @@ namespace Translator {
 	private:
         Token token{};
 		const char* func_name = nullptr;
+        int tabs{0};
+        bool new_line{false};
+        std::string translation{};
 		std::vector<Node> children;
 
 	public:
 		Node() = default;
 		Node(Token t, const char* f) : token(t), func_name(f) {}
+		Node(Token t, const char* f, std::string tr) : token(t), func_name(f), translation(tr) {}
+		Node(Token t, const char* f, std::string tr, int tab, bool nl) : token(t), func_name(f), translation(tr), tabs(tab), new_line(nl) {}
 
 		void set_token(Token t) { token = t; }
 		void push_back(const Node n) { children.push_back(n); }
@@ -64,6 +69,19 @@ namespace Translator {
 
 			for(auto node : children) node.read_node(rec + 1);
 		}
+
+        void translate(int& global_tab) {
+            global_tab += tabs;
+
+            std::cout << translation;
+            if(new_line) {
+                std::cout << std::endl;
+                for(int i = 0; i < global_tab; i++)
+                    std::cout << "\t";
+            }
+
+            for(auto node : children) node.translate(global_tab);
+        }
 	};
 
 	class Parser {

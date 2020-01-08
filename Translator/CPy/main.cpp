@@ -82,18 +82,15 @@ int main(int argc, char* argv[]) {
 		parser.push_back(token);
 	}
 
-#ifdef _DEBUG
-	for(auto i : parser.get_tokens()) {
-		std::cout << std::endl << "___" << i.get_chars() << "___: ";
-		cout_type(i);
-	}
-#endif
-
 	std::cout << std::endl << std::endl << "##### PARSER #####" << std::endl;
 	parser.start_parsing();
 
-	std::cout << std::endl << std::endl << "### Drzewo skladniowe ###" << std::endl << std::endl;
+	std::cout << std::endl << std::endl << "### Abstract Syntax Tree ###" << std::endl << std::endl;
 	parser.get_root().read_node();
+
+    std::cout << std::endl << std::endl << "### C to Python ###" << std::endl << std::endl;
+    int global_tab{0};
+    parser.get_root().translate(global_tab);
 
 	return 0;
 }

@@ -38,7 +38,7 @@ namespace Translator {
 		    case Type::IDENTIFIER:
 		    case Type::CONSTANT:
 		    case Type::STRING_LITERAL:
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
+			    p_node.push_back(Node(tokens[offset.top()], __func__, tokens[offset.top()].get_chars()));
 			    found = true;
 			    break;
 		    default: {
@@ -93,7 +93,7 @@ namespace Translator {
 	    }
 	    else {
 		    if(check_char(offset.top(),"(")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
+			    p_node.push_back(Node(tokens[offset.top()], __func__, "("));
 			    if(check_char(offset.top() + 1, ")")) {
 				    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
                     offset.top() += 2;
@@ -106,7 +106,7 @@ namespace Translator {
 			    else if(condition_inc()) {
 				    p_node.push_back(result);
 				    if(check_char(offset.top(), ")")) {
-					    p_node.push_back(Node(tokens[offset.top()], __func__));
+					    p_node.push_back(Node(tokens[offset.top()], __func__, ")"));
                         ++offset.top();
 					    if(!check_type(result = postfix_expression(true))) {
 						    p_node.push_back(result);
@@ -174,7 +174,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -206,7 +205,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -246,7 +244,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -271,7 +268,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -312,7 +308,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -329,7 +324,7 @@ namespace Translator {
 		    p_node.push_back(result);
             std::string tokens_chars = tokens[offset.top()].get_chars();
 		    if(tokens_chars == "*" || tokens_chars == "/" || tokens_chars == "%") {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
+			    p_node.push_back(Node(tokens[offset.top()], __func__, tokens[offset.top()].get_chars()));
                 ++offset.top();
 			    if(!check_type(result = multiplicative_expression())) {
 				    p_node.push_back(result);
@@ -345,7 +340,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -361,7 +355,7 @@ namespace Translator {
 	    if(!check_type(result = multiplicative_expression())) {
 		    p_node.push_back(result);
 		    if(check_char(offset.top(), "+") || check_char(offset.top(), "-")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
+			    p_node.push_back(Node(tokens[offset.top()], __func__, tokens[offset.top()].get_chars()));
                 ++offset.top();
 			    if(!check_type(result = additive_expression())) {
 				    p_node.push_back(result);
@@ -377,7 +371,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -410,7 +403,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -426,7 +418,7 @@ namespace Translator {
 	    if(!check_type(result = relational_expression())) {
 		    p_node.push_back(result);
 		    if(check_type(offset.top(), Type::EQ_OP) || check_type(offset.top(), Type::NE_OP)) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
+			    p_node.push_back(Node(tokens[offset.top()], __func__, tokens[offset.top()].get_chars()));
                 ++offset.top();
 			    if(!check_type(result = equality_expression())) {
 				    p_node.push_back(result);
@@ -442,7 +434,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -474,7 +465,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -506,7 +496,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -547,7 +536,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -582,7 +570,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -618,7 +605,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -650,7 +636,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -685,7 +670,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -721,7 +705,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -753,7 +736,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -785,7 +767,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -829,7 +810,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -882,7 +862,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -918,7 +897,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -945,7 +923,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -977,7 +954,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -1018,7 +994,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -1071,7 +1046,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -1103,7 +1077,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -1135,7 +1108,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -1160,7 +1132,7 @@ namespace Translator {
 
 	    if(!recursive) {
 		    if(check_type(offset.top(), Type::IDENTIFIER)) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
+			    p_node.push_back(Node(tokens[offset.top()], __func__, tokens[offset.top()].get_chars()));
                 ++offset.top();
 			    if(!check_type(result = direct_declarator(true))) {
 				    p_node.push_back(result);
@@ -1169,12 +1141,12 @@ namespace Translator {
 			    found = true;
 		    }
 		    else if(check_char(offset.top(), "(")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
+			    p_node.push_back(Node(tokens[offset.top()], __func__, "("));
                 ++offset.top();
 			    if(!check_type(result = direct_declarator(false))) {
 				    p_node.push_back(result);
 				    if(check_char(offset.top(), ")")) {
-					    p_node.push_back(Node(tokens[offset.top()], __func__));
+					    p_node.push_back(Node(tokens[offset.top()], __func__, "): ", 1, true));
                         ++offset.top();
 					    if(!check_type(result = direct_declarator(true))) {
 						    p_node.push_back(result);
@@ -1189,9 +1161,9 @@ namespace Translator {
 	    }
 	    else {
 		    if(check_char(offset.top(), "[")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
+			    p_node.push_back(Node(tokens[offset.top()], __func__, "["));
 			    if(check_char(offset.top() + 1, "]")) {
-				    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
+				    p_node.push_back(Node(tokens[offset.top() + 1], __func__, "]"));
                     offset.top() += 2;
 				    if(!check_type(result = direct_declarator(true))) {
 					    p_node.push_back(result);
@@ -1202,7 +1174,7 @@ namespace Translator {
 			    else if(conditional_inc()) {
 				    p_node.push_back(result);
 				    if(check_char(offset.top(), "]")) {
-					    p_node.push_back(Node(tokens[offset.top()], __func__));
+					    p_node.push_back(Node(tokens[offset.top()], __func__, "]"));
                         ++offset.top();
 					    if(!check_type(result = direct_declarator(true))) {
 						    p_node.push_back(result);
@@ -1215,9 +1187,9 @@ namespace Translator {
 			    else {}																			// It will be an error
 		    }
 		    else if(check_char(offset.top(), "(")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
+			    p_node.push_back(Node(tokens[offset.top()], __func__, "("));
 			    if(check_char(offset.top() + 1, ")")) {
-				    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
+				    p_node.push_back(Node(tokens[offset.top() + 1], __func__, "): ", 1, true));
                     offset.top() += 2;
 				    if(!check_type(result = direct_declarator(true))) {
 					    p_node.push_back(result);
@@ -1228,7 +1200,7 @@ namespace Translator {
 			    else if(parameter_inc()) {
 				    p_node.push_back(result);
 				    if(check_char(offset.top(), ")")) {
-					    p_node.push_back(Node(tokens[offset.top()], __func__));
+					    p_node.push_back(Node(tokens[offset.top()], __func__, "): ", 1, true));
                         ++offset.top();
 					    if(!check_type(result = direct_declarator(true))) {
 						    p_node.push_back(result);
@@ -1246,7 +1218,7 @@ namespace Translator {
 				    if(!check_type(result = identifier_list())) {
 					    p_node.push_back(result);
 					    if(check_char(offset.top(), ")")) {
-						    p_node.push_back(Node(tokens[offset.top()], __func__));
+						    p_node.push_back(Node(tokens[offset.top()], __func__, "): ", 1, true));
                             ++offset.top();
 						    if(!check_type(result = direct_declarator(true))) {
 							    p_node.push_back(result);
@@ -1266,7 +1238,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -1298,7 +1269,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -1329,7 +1299,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -1361,7 +1330,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -1388,7 +1356,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -1488,7 +1455,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -1524,7 +1490,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -1556,7 +1521,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -1599,7 +1563,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -1649,7 +1612,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -1711,7 +1673,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -1738,7 +1699,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -1765,7 +1725,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -1796,7 +1755,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -1810,19 +1768,25 @@ namespace Translator {
 	    func_log(__func__);
 
 	    if(check_type(offset.top(), Type::IF)) {
-		    p_node.push_back(Node(tokens[offset.top()], __func__));
+            if(tokens[offset.top() - 1].get_type() == Type::ELSE)
+                p_node.push_back(Node(tokens[offset.top()], __func__));
+            else
+		        p_node.push_back(Node(tokens[offset.top()], __func__, "if "));
 		    if(check_char(offset.top() + 1, "(")) {
 			    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
                 offset.top() += 2;
 			    if(!check_type(result = expression())) {
 				    p_node.push_back(result);
 				    if(check_char(offset.top(), ")")) {
-					    p_node.push_back(Node(tokens[offset.top()], __func__));
+					    p_node.push_back(Node(tokens[offset.top()], __func__, ": ", 1, true));
                         ++offset.top();
 					    if(!check_type(result = statement())) {
 						    p_node.push_back(result);
 						    if(check_type(offset.top(), Type::ELSE)) {
-							    p_node.push_back(Node(tokens[offset.top()], __func__));
+                                if(tokens[offset.top() + 1].get_type() == Type::IF)
+                                    p_node.push_back(Node(tokens[offset.top()], __func__, "elif "));
+                                else
+							        p_node.push_back(Node(tokens[offset.top()], __func__, "else: ", 1, true));
                                 ++offset.top();
 							    if(!check_type(result = statement())) {
 								    p_node.push_back(result);
@@ -1868,7 +1832,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -1982,7 +1945,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -2001,23 +1963,23 @@ namespace Translator {
         };
 
 	    if(check_type(offset.top(), Type::BREAK)) {
-		    p_node.push_back(Node(tokens[offset.top()], __func__));
+		    p_node.push_back(Node(tokens[offset.top()], __func__, "break"));
 		    if(check_char(offset.top() + 1, ";")) {
-			    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
+			    p_node.push_back(Node(tokens[offset.top() + 1], __func__, "", -1, true));
 			    found = 2;
 		    }
 		    else {}															// It will be an error
 	    }
 	    else if(check_type(offset.top(), Type::RETURN)) {
-		    p_node.push_back(Node(tokens[offset.top()], __func__));
+		    p_node.push_back(Node(tokens[offset.top()], __func__, "return "));
 		    if(check_char(offset.top() + 1, ";")) {
-			    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
+			    p_node.push_back(Node(tokens[offset.top() + 1], __func__, "", -1, true));
 			    found = 2;
 		    }
 		    else if(expression_inc()) {
 			    p_node.push_back(result);
 			    if(check_char(offset.top(), ";")) {
-				    p_node.push_back(Node(tokens[offset.top()], __func__));
+				    p_node.push_back(Node(tokens[offset.top()], __func__, "", -1, true));
 				    found = 1;
 			    }
 			    else {}														// It will be an error
@@ -2030,7 +1992,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -2038,7 +1999,7 @@ namespace Translator {
     Node Parser::translation_unit() {			// Recursive
         prepare();
 	    bool found = false;
-	    Node p_node(Token(Type::parsing), __func__);
+	    Node p_node(Token(Type::parsing), __func__, "# After translation\n# Remember, you should check the code!\n\n");
 	    Node result;
 
 	    func_log(__func__);
@@ -2083,7 +2044,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }
@@ -2091,7 +2051,7 @@ namespace Translator {
     Node Parser::function_definition() {
 	    prepare();
 	    bool found = false;
-	    Node p_node(Token(Type::parsing), __func__);
+	    Node p_node(Token(Type::parsing), __func__, "def ");
 	    Node result;
 
 	    func_log(__func__);
@@ -2138,7 +2098,6 @@ namespace Translator {
 		    return p_node;
 	    }
 	    else {
-
 		    return Node(Token(), __func__);
 	    }
     }

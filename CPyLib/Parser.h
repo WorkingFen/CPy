@@ -145,6 +145,8 @@ namespace Translator {
         bool check_type(int token_num, Type type) { return tokens[token_num].get_type() == type; }
         bool check_char(int token_num, std::string ch) { return tokens[token_num].get_chars() == ch; }
 
+        void require(bool condition, std::string error_msg = "");
+
         void prepare() { offset.emplace(offset.top()); }
         void commit(int inc);
 

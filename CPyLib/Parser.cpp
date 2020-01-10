@@ -7,6 +7,11 @@ namespace Translator {
     #endif
     }
 
+    void Parser::require(bool condition, std::string error_msg) {
+        if(!condition)
+            throw Parser_Exception(error_msg);
+    }
+
     void Parser::commit(int inc) {
         int token_number = offset.top();
         offset.pop();
@@ -28,7 +33,6 @@ namespace Translator {
 
     Node Parser::primary_expression() {
         prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -39,38 +43,27 @@ namespace Translator {
 		    case Type::CONSTANT:
 		    case Type::STRING_LITERAL:
 			    p_node.push_back(Node(tokens[offset.top()], __func__, tokens[offset.top()].get_chars()));
-			    found = true;
 			    break;
 		    default: {
 			    if(check_char(offset.top(), "(")) {
 				    p_node.push_back(Node(tokens[offset.top()], __func__));
                     ++offset.top();
-				    if(!check_type(result = expression())) {
-					    p_node.push_back(result);
-					    if(check_char(offset.top(), ")")) {
-						    p_node.push_back(Node(tokens[offset.top()], __func__));
-						    found = true;
-					    }
-					    else {}													// It will be an error
-				    }
-				    else {}														// It will be an error
+                    require(!check_type(result = expression()));
+					p_node.push_back(result);
+                    require(check_char(offset.top(), ")"));
+					p_node.push_back(Node(tokens[offset.top()], __func__));
 			    }
+                else
+                    return Node(Token(), __func__);
 			    break;
 		    }
 	    }
-
-	    if(found) {
-            commit(1);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+        commit(1);
+		return p_node;
     }
 
     Node Parser::postfix_expression(bool recursive) {			// Recursive
         prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -84,12 +77,11 @@ namespace Translator {
 	    if(!recursive) {
 		    if(!check_type(result = primary_expression())) {
 			    p_node.push_back(result);
-			    if(!check_type(result = postfix_expression(true))) {
+			    if(!check_type(result = postfix_expression(true)))
 				    p_node.push_back(result);
-				    found = true;
-			    }
-			    found = true;
 		    }
+            else
+                return Node(Token(), __func__);
 	    }
 	    else {
 		    if(check_char(offset.top(),"(")) {
@@ -97,90 +89,59 @@ namespace Translator {
 			    if(check_char(offset.top() + 1, ")")) {
 				    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
                     offset.top() += 2;
-				    if(!check_type(result = postfix_expression(true))) {
+				    if(!check_type(result = postfix_expression(true)))
 					    p_node.push_back(result);
-					    found = true;
-				    }
-				    found = true;
 			    }
-			    else if(condition_inc()) {
-				    p_node.push_back(result);
-				    if(check_char(offset.top(), ")")) {
-					    p_node.push_back(Node(tokens[offset.top()], __func__, ")"));
-                        ++offset.top();
-					    if(!check_type(result = postfix_expression(true))) {
-						    p_node.push_back(result);
-						    found = true;
-					    }
-					    found = true;
-				    }
-				    else {}																	// It will be an error
-			    }
-			    else {}																		// It will be an error
+                else {
+                    require(condition_inc());
+                    p_node.push_back(result);
+                    require(check_char(offset.top(), ")"));
+                    p_node.push_back(Node(tokens[offset.top()], __func__, ")"));
+                    ++offset.top();
+                    if(!check_type(result = postfix_expression(true)))
+                        p_node.push_back(result);
+                }
 		    }
 		    else if(check_char(offset.top(), ".")) {
 			    p_node.push_back(Node(tokens[offset.top()], __func__));
-			    if(check_type(offset.top() + 1, Type::IDENTIFIER)) {
-				    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-                    offset.top() += 2;
-				    if(!check_type(result = postfix_expression(true))) {
-					    p_node.push_back(result);
-					    found = true;
-				    }
-				    found = true;
-			    }
-			    else {}																		// It will be an error
+                require(check_type(offset.top() + 1, Type::IDENTIFIER));
+				p_node.push_back(Node(tokens[offset.top() + 1], __func__));
+                offset.top() += 2;
+				if(!check_type(result = postfix_expression(true)))
+					p_node.push_back(result);
 		    }
 		    else if(check_type(offset.top(), Type::INC_OP)) {
 			    p_node.push_back(Node(tokens[offset.top()], __func__));
                 ++offset.top();
-			    if(!check_type(result = postfix_expression(true))) {
+			    if(!check_type(result = postfix_expression(true)))
 				    p_node.push_back(result);
-				    found = true;
-			    }
-			    found = true;
 		    }
 		    else if(check_type(offset.top(), Type::DEC_OP)) {
 			    p_node.push_back(Node(tokens[offset.top()], __func__));
                 ++offset.top();
-			    if(!check_type(result = postfix_expression(true))) {
+			    if(!check_type(result = postfix_expression(true)))
 				    p_node.push_back(result);
-				    found = true;
-			    }
-			    found = true;
 		    }
 		    else if(check_char(offset.top(), "[")) {
 			    p_node.push_back(Node(tokens[offset.top()], __func__));
                 ++offset.top();
-			    if(!check_type(result = expression())) {
-				    p_node.push_back(result);
-				    if(check_char(offset.top(), "]")) {
-					    p_node.push_back(Node(tokens[offset.top()], __func__));
-                        ++offset.top();
-					    if(!check_type(result = postfix_expression(true))) {
-						    p_node.push_back(result);
-						    found = true;
-					    }
-					    found = true;
-				    }
-				    else {}																	// It will be an error
-			    }
-			    else {}																		// It will be an error
+                require(!check_type(result = expression()));
+				p_node.push_back(result);
+                require(check_char(offset.top(), "]"));
+				p_node.push_back(Node(tokens[offset.top()], __func__));
+                ++offset.top();
+				if(!check_type(result = postfix_expression(true)))
+					p_node.push_back(result);
 		    }
+            else
+                return Node(Token(), __func__);
 	    }
-
-	    if(found) {
-            commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+        commit(0);
+		return p_node;
     }
 
     Node Parser::argument_expression_list() {	// Recursive
         prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -191,27 +152,19 @@ namespace Translator {
 		    if(check_char(offset.top(), ",")) {
 			    p_node.push_back(Node(tokens[offset.top()], __func__));
                 ++offset.top();
-			    if(!check_type(result = argument_expression_list())) {
-				    p_node.push_back(result);
-				    found = true;
-			    }
-			    else {}																	// It will be an error
+                require(!check_type(result = argument_expression_list()));
+				p_node.push_back(result);
 		    }
-		    found = true; 
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-            commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+        commit(0);
+		return p_node;
     }
 
     Node Parser::unary_expression() {				// Recursive
         prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -219,38 +172,27 @@ namespace Translator {
 
 	    if(!check_type(result = postfix_expression(false))) {
 		    p_node.push_back(result);
-		    found = true;
 	    }
 	    else if(check_type(offset.top(), Type::INC_OP) || check_type(offset.top(), Type::DEC_OP)) {
 		    p_node.push_back(Node(tokens[offset.top()], __func__));
             ++offset.top();
-		    if(!check_type(result = unary_expression())) {
-			    p_node.push_back(result);
-			    found = true;
-		    }
-		    else {}																// It will be an error
+            require(!check_type(result = unary_expression()));
+			p_node.push_back(result);
 	    }
 	    else if(!check_type(result = unary_operator())) {
 		    p_node.push_back(result);
-		    if(!check_type(result = cast_expression())) {
-			    p_node.push_back(result);
-			    found = true;
-		    }
-		    else {}																// It will be an error
+            require(!check_type(result = cast_expression()));
+			p_node.push_back(result);
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-            commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+        commit(0);
+		return p_node;
     }
 
     Node Parser::unary_operator() {
         prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -258,23 +200,17 @@ namespace Translator {
 
 	    std::string tokens_chars = tokens[offset.top()].get_chars();
 
-	    if(tokens_chars == "*" || tokens_chars == "+" || tokens_chars == "-" || tokens_chars == "!") {
+	    if(tokens_chars == "*" || tokens_chars == "+" || tokens_chars == "-" || tokens_chars == "!")
 		    p_node.push_back(Node(tokens[offset.top()], __func__));
-		    found = true;
-	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-            commit(1);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+        commit(1);
+		return p_node;
     }
 
     Node Parser::cast_expression() {					// Recursive
         prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -282,39 +218,27 @@ namespace Translator {
 
 	    if(!check_type(result = unary_expression())) {
 		    p_node.push_back(result);
-		    found = true;
 	    }
 	    else if(check_char(offset.top(), "(")) {
 		    p_node.push_back(Node(tokens[offset.top()], __func__));
             ++offset.top();
-		    if(!check_type(result = type_name())) {
-			    p_node.push_back(result);
-			    if(check_char(offset.top(), ")")) {
-				    p_node.push_back(Node(tokens[offset.top()], __func__));
-                    ++offset.top();
-				    if(!check_type(result = cast_expression())) {
-					    p_node.push_back(result);
-					    found = true;
-				    }
-				    else {}																// It will be an error
-			    }
-			    else {}																	// It will be an error
-		    }
-		    else {}																		// It will be an error
+            require(!check_type(result = type_name()));
+			p_node.push_back(result);
+            require(check_char(offset.top(), ")"));
+			p_node.push_back(Node(tokens[offset.top()], __func__));
+            ++offset.top();
+            require(!check_type(result = cast_expression()));
+			p_node.push_back(result);
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-            commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+        commit(0);
+		return p_node;
     }
 
     Node Parser::multiplicative_expression() {		// Recursive
         prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -326,27 +250,19 @@ namespace Translator {
 		    if(tokens_chars == "*" || tokens_chars == "/" || tokens_chars == "%") {
 			    p_node.push_back(Node(tokens[offset.top()], __func__, tokens[offset.top()].get_chars()));
                 ++offset.top();
-			    if(!check_type(result = multiplicative_expression())) {
-				    p_node.push_back(result);
-				    found = true;
-			    }
-			    else {}																		// It will be an error
+                require(!check_type(result = multiplicative_expression()));
+				p_node.push_back(result);
 		    }
-		    found = true; 
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-            commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+        commit(0);
+		return p_node;
     }
 
     Node Parser::additive_expression() {				// Recursive
         prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -357,27 +273,19 @@ namespace Translator {
 		    if(check_char(offset.top(), "+") || check_char(offset.top(), "-")) {
 			    p_node.push_back(Node(tokens[offset.top()], __func__, tokens[offset.top()].get_chars()));
                 ++offset.top();
-			    if(!check_type(result = additive_expression())) {
-				    p_node.push_back(result);
-				    found = true;
-			    }
-			    else {}																	// It will be an error
+                require(!check_type(result = additive_expression()));
+				p_node.push_back(result);
 		    }
-		    found = true; 
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-            commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+        commit(0);
+		return p_node;
     }
 
     Node Parser::relational_expression() {			// Recursive
         prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -389,27 +297,19 @@ namespace Translator {
 			        check_type(offset.top(), Type::LE_OP) || check_type(offset.top(), Type::GE_OP)) {
 			    p_node.push_back(Node(tokens[offset.top()], __func__));
                 ++offset.top();
-			    if(!check_type(result = relational_expression())) {
-				    p_node.push_back(result);
-				    found = true;
-			    }
-			    else {}																// It will be an error
+                require(!check_type(result = relational_expression()));
+				p_node.push_back(result);
 		    }
-		    found = true; 
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-            commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+        commit(0);
+		return p_node;
     }
 
     Node Parser::equality_expression() {				// Recursive
         prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -420,27 +320,19 @@ namespace Translator {
 		    if(check_type(offset.top(), Type::EQ_OP) || check_type(offset.top(), Type::NE_OP)) {
 			    p_node.push_back(Node(tokens[offset.top()], __func__, tokens[offset.top()].get_chars()));
                 ++offset.top();
-			    if(!check_type(result = equality_expression())) {
-				    p_node.push_back(result);
-				    found = true;
-			    }
-			    else {}																// It will be an error
+                require(!check_type(result = equality_expression()));
+				p_node.push_back(result);
 		    }
-		    found = true; 
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-            commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+        commit(0);
+		return p_node;
     }
 
     Node Parser::logical_and_expression() {			// Recursive
         prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -451,27 +343,19 @@ namespace Translator {
 		    if(check_type(offset.top(), Type::AND_OP)) {
 			    p_node.push_back(Node(tokens[offset.top()], __func__));
                 ++offset.top();
-			    if(!check_type(result = logical_and_expression())) {
-				    p_node.push_back(result);
-				    found = true;
-			    }
-			    else {}																			// It will be an error
+                require(!check_type(result = logical_and_expression()));
+				p_node.push_back(result);
 		    }
-		    found = true; 
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-            commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+        commit(0);
+		return p_node;
     }
 
     Node Parser::logical_or_expression() {			// Recursive
         prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -482,27 +366,19 @@ namespace Translator {
 		    if(check_type(offset.top(), Type::OR_OP)) {
 			    p_node.push_back(Node(tokens[offset.top()], __func__));
                 ++offset.top();
-			    if(!check_type(result = logical_or_expression())) {
-				    p_node.push_back(result);
-				    found = true;
-			    }
-			    else {}															// It will be an error
+                require(!check_type(result = logical_or_expression()));
+				p_node.push_back(result);
 		    }
-		    found = true; 
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::conditional_expression() {			// Recursive
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -513,36 +389,24 @@ namespace Translator {
 		    if(check_char(offset.top(), "?")) {
 			    p_node.push_back(Node(tokens[offset.top()], __func__));
                 ++offset.top();
-			    if(!check_type(result = expression())) {
-				    p_node.push_back(result);
-				    if(check_char(offset.top(), ":")) {
-					    p_node.push_back(Node(tokens[offset.top()], __func__));
-                        ++offset.top();
-					    if(!check_type(result = conditional_expression())) {
-						    p_node.push_back(result);
-						    found = true;
-					    }
-					    else {}															// It will be an error
-				    }
-				    else {}																// It will be an error
-			    }
-			    else {}																	// It will be an error
+                require(!check_type(result = expression()));
+				p_node.push_back(result);
+                require(check_char(offset.top(), ":"));
+				p_node.push_back(Node(tokens[offset.top()], __func__));
+                ++offset.top();
+                require(!check_type(result = conditional_expression()));
+				p_node.push_back(result);
 		    }
-		    found = true; 
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::assignment_expression() {			// Recursive
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -550,33 +414,23 @@ namespace Translator {
 
 	    if(!check_type(result = conditional_expression())) {
 		    p_node.push_back(result);
-		    found = true;
 	    }
 	    else if(!check_type(result = unary_expression())) {
 		    p_node.push_back(result);
-		    if(!check_type(result = assignment_operator())) {
-			    p_node.push_back(result);
-			    if(!check_type(result = assignment_expression())) {
-				    p_node.push_back(result);
-				    found = true;
-			    }
-			    else {}																	// It will be an error
-		    }
-		    else {}																		// It will be an error
+            require(!check_type(result = assignment_operator()));
+			p_node.push_back(result);
+            require(!check_type(result = assignment_expression()));
+			p_node.push_back(result);
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::assignment_operator() {
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -589,29 +443,22 @@ namespace Translator {
 		    case Type::ADD_ASSIGN:
 		    case Type::SUB_ASSIGN:
 			    p_node.push_back(Node(tokens[offset.top()], __func__));
-			    found = true;
 			    break;
 		    default: {
-			    if(check_char(offset.top(), "=")) {
+			    if(check_char(offset.top(), "="))
 				    p_node.push_back(Node(tokens[offset.top()], __func__));
-				    found = true;
-			    }
+                else
+                    return Node(Token(), __func__);
 			    break;
 		    }
 	    }
 
-	    if(found) {
-		    commit(1);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(1);
+		return p_node;
     }
 
     Node Parser::expression() {						// Recursive
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -622,27 +469,19 @@ namespace Translator {
 		    if(check_char(offset.top(), ",")) {
 			    p_node.push_back(Node(tokens[offset.top()], __func__));
                 ++offset.top();
-			    if(!check_type(result = expression())) {
-				    p_node.push_back(result);
-				    found = true;
-			    }
-			    else {}																// It will be an error
+                require(!check_type(result = expression()));
+				p_node.push_back(result);
 		    }
-		    found = true; 
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::declaration() {
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -652,31 +491,23 @@ namespace Translator {
 		    p_node.push_back(result);
 		    if(check_char(offset.top(), ";")) {
 			    p_node.push_back(Node(tokens[offset.top()], __func__));
-			    found = true;
 		    }
-		    else if(!check_type(result = init_declarator_list())) {
-			    p_node.push_back(result);
-			    if(check_char(offset.top(), ";")) {
-				    p_node.push_back(Node(tokens[offset.top()], __func__));
-				    found = true;
-			    }
-			    else {}															// It will be an error
-		    }
-		    else {}																// It will be an error
+            else {
+                require(!check_type(result = init_declarator_list()));
+                p_node.push_back(result);
+                require(check_char(offset.top(), ";"));
+                p_node.push_back(Node(tokens[offset.top()], __func__));
+            }
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(1);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(1);
+		return p_node;
     }
 
     Node Parser::declaration_specifiers() {						// Recursive
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -685,33 +516,23 @@ namespace Translator {
 	    if(check_type(offset.top(), Type::TYPEDEF)) {
 		    p_node.push_back(Node(tokens[offset.top()], __func__));
             ++offset.top();
-		    if(!check_type(result = declaration_specifiers())) {
+		    if(!check_type(result = declaration_specifiers()))
 			    p_node.push_back(result);
-			    found = true;
-		    }
-		    found = true;
 	    }
 	    else if(!check_type(result = type_specifier())) {
 		    p_node.push_back(result);
-		    if(!check_type(result = declaration_specifiers())) {
+		    if(!check_type(result = declaration_specifiers()))
 			    p_node.push_back(result);
-			    found = true;
-		    }
-		    found = true;
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::init_declarator_list() {						// Recursive
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -722,27 +543,19 @@ namespace Translator {
 		    if(check_char(offset.top(), ",")) {
 			    p_node.push_back(Node(tokens[offset.top()], __func__));
                 ++offset.top();
-			    if(!check_type(result = init_declarator_list())) {
-				    p_node.push_back(result);
-				    found = true;
-			    }
-			    else {}																		// It will be an error
+                require(!check_type(result = init_declarator_list()));
+				p_node.push_back(result);
 		    }
-		    found = true; 
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::init_declarator() {
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -753,27 +566,19 @@ namespace Translator {
 		    if(check_char(offset.top(), "=")) {
 			    p_node.push_back(Node(tokens[offset.top()], __func__));
                 ++offset.top();
-			    if(!check_type(result = initializer())) {
-				    p_node.push_back(result);
-				    found = true;
-			    }
-			    else {}																		// It will be an error
+                require(!check_type(result = initializer()));
+				p_node.push_back(result);
 		    }
-		    found = true;
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::type_specifier() {
 	    prepare();
-	    int found = 0;	// Types: 0 - nothing found, 1 - found function, 2 - found token
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -790,33 +595,25 @@ namespace Translator {
 		    case Type::SIGNED:
 		    case Type::UNSIGNED:
 			    p_node.push_back(Node(tokens[offset.top()], __func__));
-			    found = 2;
+                ++offset.top();
 			    break;
 		    default: {
-			    if(!check_type(result = struct_or_union_specifier())) {
+			    if(!check_type(result = struct_or_union_specifier()))
 				    p_node.push_back(result);
-				    found = 1;
-			    }
-			    else if(!check_type(result = enum_specifier())) {
+			    else if(!check_type(result = enum_specifier()))
 				    p_node.push_back(result);
-				    found = 1;
-			    }
+                else
+                    return Node(Token(), __func__);
 			    break;
 		    }
 	    }
 
-	    if(found) {
-		    commit(found - 1);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::struct_or_union_specifier() {
 	    prepare();
-	    int found = 0;	// Types: 0 - nothing found, 1 - found other token, 2 - found IDENTIFIER as last
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -829,46 +626,34 @@ namespace Translator {
 			    if(check_char(offset.top() + 2, "{")) {
 				    p_node.push_back(Node(tokens[offset.top() + 2], __func__));
                     offset.top() += 3;
-				    if(!check_type(result = struct_declaration_list())) {
-					    p_node.push_back(result);
-					    if(check_char(offset.top(), "}")) {
-						    p_node.push_back(Node(tokens[offset.top()], __func__));
-						    found = 1;
-					    }
-					    else {}																	// It will be an error
-				    }
-				    else {}																		// It will be an error
+                    require(!check_type(result = struct_declaration_list()));
+					p_node.push_back(result);
+                    require(check_char(offset.top(), "}"));
+					p_node.push_back(Node(tokens[offset.top()], __func__));
+                    ++offset.top();
 			    }
-			    found = 2;
-		    }
-		    else if(check_char(offset.top() + 1, "{")) {
-			    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
                 offset.top() += 2;
-			    if(!check_type(result = struct_declaration_list())) {
-				    p_node.push_back(result);
-				    if(check_char(offset.top(), "}")) {
-					    p_node.push_back(Node(tokens[offset.top()], __func__));
-					    found = 1;
-				    }
-				    else {}																		// It will be an error
-			    }
-			    else {}																			// It will be an error
 		    }
-		    else {}																				// It will be an error
+            else {
+                require(check_char(offset.top() + 1, "{"));
+                p_node.push_back(Node(tokens[offset.top() + 1], __func__));
+                offset.top() += 2;
+                require(!check_type(result = struct_declaration_list()));
+                p_node.push_back(result);
+                require(check_char(offset.top(), "}"));
+                p_node.push_back(Node(tokens[offset.top()], __func__));
+                ++offset.top();
+            }
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-            commit(found);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+        commit(0);
+		return p_node;
     }
 
     Node Parser::struct_declaration_list() {							// Recursive
 	    prepare();
-	    bool found = true;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -876,34 +661,23 @@ namespace Translator {
 
 	    if(!check_type(result = specifier_qualifier_list())) {
 		    p_node.push_back(result);
-		    if(!check_type(result = struct_declarator_list())) {
-			    p_node.push_back(result);
-			    if(check_char(offset.top(), ";")) {
-				    p_node.push_back(Node(tokens[offset.top()], __func__));
-                    ++offset.top();
-				    if(!check_type(result = struct_declaration_list())) {
-					    p_node.push_back(result);
-					    found = true;
-				    }
-				    found = true;
-			    }
-			    else {}																			// It will be an error
-		    }
-		    else {}																				// It will be an error
+            require(!check_type(result = struct_declarator_list()));
+			p_node.push_back(result);
+            require(check_char(offset.top(), ";"));
+			p_node.push_back(Node(tokens[offset.top()], __func__));
+            ++offset.top();
+			if(!check_type(result = struct_declaration_list()))
+				p_node.push_back(result);
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::specifier_qualifier_list() {						// Recursive
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -911,25 +685,18 @@ namespace Translator {
 
 	    if(!check_type(result = type_specifier())) {
 		    p_node.push_back(result);
-		    if(!check_type(result = specifier_qualifier_list())) {
+		    if(!check_type(result = specifier_qualifier_list()))
 			    p_node.push_back(result);
-			    found = true;
-		    }
-		    found = true; 
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::struct_declarator_list() {							// Recursive
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -940,27 +707,19 @@ namespace Translator {
 		    if(check_char(offset.top(), ",")) {
 			    p_node.push_back(Node(tokens[offset.top()], __func__));
                 ++offset.top();
-			    if(!check_type(result = struct_declarator_list())) {
-				    p_node.push_back(result);
-				    found = true;
-			    }
-			    else {}																			// It will be an error
+                require(!check_type(result = struct_declarator_list()));
+				p_node.push_back(result);
 		    }
-		    found = true; 
 	    }
+        else
+            return Node(Token(), __func__);
 	
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::struct_declarator() {
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -971,31 +730,21 @@ namespace Translator {
 		    if(check_char(offset.top(), ":")) {
 			    p_node.push_back(Node(tokens[offset.top()], __func__));
                 ++offset.top();
-			    if(!check_type(result = conditional_expression())) {
-				    p_node.push_back(result);
-				    found = true;
-			    }
-			    else {}																// It will be an error
+                require(!check_type(result = conditional_expression()));
+				p_node.push_back(result);
 		    }
-		    found = true;
 	    }
 	    else if(check_char(offset.top(), ":")) {
 		    p_node.push_back(Node(tokens[offset.top()], __func__));
             ++offset.top();
-		    if(!check_type(result = conditional_expression())) {
-			    p_node.push_back(result);
-			    found = true;
-		    }
-		    else {}																	// It will be an error
+            require(!check_type(result = conditional_expression()));
+			p_node.push_back(result);
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::enum_specifier() {
@@ -1013,46 +762,34 @@ namespace Translator {
 			    if(check_char(offset.top() + 2, "{")) {
 				    p_node.push_back(Node(tokens[offset.top() + 2], __func__));
                     offset.top() += 3;
-				    if(!check_type(result = enumerator_list())) {
-					    p_node.push_back(result);
-					    if(check_char(offset.top(), "}")) {
-						    p_node.push_back(Node(tokens[offset.top()], __func__));
-						    found = 1;
-					    }
-					    else {}																// It will be an error
-				    }
-				    else {}																	// It will be an error
+                    require(!check_type(result = enumerator_list()));
+					p_node.push_back(result);
+                    require(check_char(offset.top(), "}"));
+					p_node.push_back(Node(tokens[offset.top()], __func__));
+					found = 1;
 			    }
 			    found = 2;
 		    }
-		    else if(check_char(offset.top() + 1, "{")) {
-			    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
+            else {
+                require(check_char(offset.top() + 1, "{"));
+                p_node.push_back(Node(tokens[offset.top() + 1], __func__));
                 offset.top() += 2;
-			    if(!check_type(result = enumerator_list())) {
-				    p_node.push_back(result);
-				    if(check_char(offset.top(), "}")) {
-					    p_node.push_back(Node(tokens[offset.top()], __func__));
-					    found = 1;
-				    }
-				    else {}																	// It will be an error
-			    }
-			    else {}																		// It will be an error
-		    }
-		    else {}																			// It will be an error
+                require(!check_type(result = enumerator_list()));
+                p_node.push_back(result);
+                require(check_char(offset.top(), "}"));
+                p_node.push_back(Node(tokens[offset.top()], __func__));
+                found = 1;
+            }
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-            commit(found);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+        commit(found);
+		return p_node;
     }
 
     Node Parser::enumerator_list() {							// Recursive
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -1063,27 +800,19 @@ namespace Translator {
 		    if(check_char(offset.top(), ",")) {
 			    p_node.push_back(Node(tokens[offset.top()], __func__));
                 ++offset.top();
-			    if(!check_type(result = enumerator_list())) {
-				    p_node.push_back(result);
-				    found = true;
-			    }
-			    else {}																	// It will be an error
+                require(!check_type(result = enumerator_list()));
+				p_node.push_back(result);
 		    }
-		    found = true; 
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::enumerator() {
 	    prepare();
-	    int found = 0;	// Types: 0 - nothing found, 1 - found function, 2 - found token
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -1094,22 +823,16 @@ namespace Translator {
 		    if(check_char(offset.top() + 1, "=")) {
 			    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
                 offset.top() += 2;
-			    if(!check_type(result = conditional_expression())) {
-				    p_node.push_back(result);
-				    found = 1;
-			    }
-			    else {}																		// It will be an error
+                require(!check_type(result = conditional_expression()));
+				p_node.push_back(result);
 		    }
-		    found = 2;
+            ++offset.top();
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-            commit(found - 1);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+        commit(0);
+		return p_node;
     }
 
     Node Parser::direct_declarator(bool recursive) {							// Recursive
@@ -1143,20 +866,16 @@ namespace Translator {
 		    else if(check_char(offset.top(), "(")) {
 			    p_node.push_back(Node(tokens[offset.top()], __func__, "("));
                 ++offset.top();
-			    if(!check_type(result = direct_declarator(false))) {
-				    p_node.push_back(result);
-				    if(check_char(offset.top(), ")")) {
-					    p_node.push_back(Node(tokens[offset.top()], __func__, "): ", 1, true));
-                        ++offset.top();
-					    if(!check_type(result = direct_declarator(true))) {
-						    p_node.push_back(result);
-						    found = true;
-					    }
-					    found = true;
-				    }
-				    else {}																		// It will be an error
-			    }
-			    else {}																			// It will be an error
+                require(!check_type(result = direct_declarator(false)));
+				p_node.push_back(result);
+                require(check_char(offset.top(), ")"));
+				p_node.push_back(Node(tokens[offset.top()], __func__, "): ", 1, true));
+                ++offset.top();
+				if(!check_type(result = direct_declarator(true))) {
+					p_node.push_back(result);
+					found = true;
+				}
+				found = true;
 		    }
 	    }
 	    else {
@@ -1171,20 +890,18 @@ namespace Translator {
 				    }
 				    found = true;
 			    }
-			    else if(conditional_inc()) {
-				    p_node.push_back(result);
-				    if(check_char(offset.top(), "]")) {
-					    p_node.push_back(Node(tokens[offset.top()], __func__, "]"));
-                        ++offset.top();
-					    if(!check_type(result = direct_declarator(true))) {
-						    p_node.push_back(result);
-						    found = true;
-					    }
-					    found = true;
-				    }
-				    else {}																		// It will be an error
-			    }
-			    else {}																			// It will be an error
+                else {
+                    require(conditional_inc());
+                    p_node.push_back(result);
+                    require(check_char(offset.top(), "]"));
+                    p_node.push_back(Node(tokens[offset.top()], __func__, "]"));
+                    ++offset.top();
+                    if(!check_type(result = direct_declarator(true))) {
+                        p_node.push_back(result);
+                        found = true;
+                    }
+                    found = true;
+                }
 		    }
 		    else if(check_char(offset.top(), "(")) {
 			    p_node.push_back(Node(tokens[offset.top()], __func__, "("));
@@ -1199,36 +916,30 @@ namespace Translator {
 			    }
 			    else if(parameter_inc()) {
 				    p_node.push_back(result);
-				    if(check_char(offset.top(), ")")) {
-					    p_node.push_back(Node(tokens[offset.top()], __func__, "): ", 1, true));
-                        ++offset.top();
-					    if(!check_type(result = direct_declarator(true))) {
-						    p_node.push_back(result);
-						    found = true;
-					    }
-					    found = true;
-				    }
-				    else {}																		// It will be an error
+                    require(check_char(offset.top(), ")"));
+					p_node.push_back(Node(tokens[offset.top()], __func__, "): ", 1, true));
+                    ++offset.top();
+					if(!check_type(result = direct_declarator(true))) {
+						p_node.push_back(result);
+						found = true;
+					}
+					found = true;
 			    }
 
 			    if(!found) {
                     offset.pop();
                     prepare();
                     ++offset.top();
-				    if(!check_type(result = identifier_list())) {
-					    p_node.push_back(result);
-					    if(check_char(offset.top(), ")")) {
-						    p_node.push_back(Node(tokens[offset.top()], __func__, "): ", 1, true));
-                            ++offset.top();
-						    if(!check_type(result = direct_declarator(true))) {
-							    p_node.push_back(result);
-							    found = true;
-						    }
-						    found = true;
-					    }
-					    else {}																	// It will be an error
-				    }
-				    else {}																		// It will be an error
+                    require(!check_type(result = identifier_list()));
+					p_node.push_back(result);
+                    require(check_char(offset.top(), ")"));
+					p_node.push_back(Node(tokens[offset.top()], __func__, "): ", 1, true));
+                    ++offset.top();
+					if(!check_type(result = direct_declarator(true))) {
+						p_node.push_back(result);
+						found = true;
+					}
+					found = true;
 			    }
 		    }
 	    }
@@ -1244,7 +955,6 @@ namespace Translator {
 
     Node Parser::parameter_list() {					// Recursive
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -1255,27 +965,19 @@ namespace Translator {
 		    if(check_char(offset.top(), ",")) {
 			    p_node.push_back(Node(tokens[offset.top()], __func__));
                 ++offset.top();
-			    if(!check_type(result = parameter_list())) {
-				    p_node.push_back(result);
-				    found = true;
-			    }
-			    else {}																// It will be an error
+                require(!check_type(result = parameter_list()));
+				p_node.push_back(result);
 		    }
-		    found = true; 
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::parameter_declaration() {
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -1283,29 +985,20 @@ namespace Translator {
 
 	    if(!check_type(result = declaration_specifiers())) {
 		    p_node.push_back(result);
-		    if(!check_type(result = direct_declarator(false))) {
+		    if(!check_type(result = direct_declarator(false)))
 			    p_node.push_back(result);
-			    found = true;
-		    }
-		    else if(!check_type(result = direct_abstract_declarator(false))) {
+		    else if(!check_type(result = direct_abstract_declarator(false)))
 			    p_node.push_back(result);
-			    found = true;
-		    }
-		    found = true;
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::identifier_list() {						// Recursive
 	    prepare();
-	    int found = 0;	// Types: 0 - nothing found, 1 - end of recursion, 2 - ends with token
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -1316,27 +1009,20 @@ namespace Translator {
 		    if(check_char(offset.top() + 1, ",")) {
 			    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
                 offset.top() += 2;
-			    if(!check_type(result = identifier_list())) {
-				    p_node.push_back(result);
-				    found = 1;
-			    }
-			    else {}															// It will be an error
+                require(!check_type(result = identifier_list()));
+				p_node.push_back(result);
 		    }
-		    found = 2;
+            ++offset.top();
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(found - 1);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::type_name() {
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -1344,25 +1030,18 @@ namespace Translator {
 
 	    if(!check_type(result = specifier_qualifier_list())) {
 		    p_node.push_back(result);
-		    if(!check_type(result = direct_abstract_declarator(false))) {
+		    if(!check_type(result = direct_abstract_declarator(false)))
 			    p_node.push_back(result);
-			    found = true;
-		    }
-		    found = true;
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::direct_abstract_declarator(bool recursive) {								// Recursive
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -1382,45 +1061,30 @@ namespace Translator {
 		    p_node.push_back(Node(tokens[offset.top()], __func__));
 		    if(!recursive) {
                 ++offset.top();
-			    if(!check_type(result = direct_abstract_declarator(false))) {
-				    p_node.push_back(result);
-				    if(check_char(offset.top(), ")")) {
-					    p_node.push_back(Node(tokens[offset.top()], __func__));
-                        ++offset.top();
-					    if(!check_type(result = direct_abstract_declarator(true))) {
-						    p_node.push_back(result);
-						    found = true;
-					    }
-					    found = true;
-				    }
-				    else {}																		// It will be an error
-			    }
-			    else {}																			// It will be an error
+                require(!check_type(result = direct_abstract_declarator(false)));
+				p_node.push_back(result);
+                require(check_char(offset.top(), ")"));
+				p_node.push_back(Node(tokens[offset.top()], __func__));
+                ++offset.top();
+				if(!check_type(result = direct_abstract_declarator(true)))
+					p_node.push_back(result);
 		    }
 		    else {
 			    if(check_char(offset.top() + 1, ")")) {
 				    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
                     offset.top() += 2;
-				    if(!check_type(result = direct_abstract_declarator(true))) {
+				    if(!check_type(result = direct_abstract_declarator(true)))
 					    p_node.push_back(result);
-					    found = true;
-				    }
-				    found = true;
 			    }
-			    else if(parameter_inc()) {
-				    p_node.push_back(result);
-				    if(check_char(offset.top(), ")")) {
-					    p_node.push_back(Node(tokens[offset.top()], __func__));
-                        ++offset.top();
-					    if(!check_type(result = direct_abstract_declarator(true))) {
-						    p_node.push_back(result);
-						    found = true;
-					    }
-					    found = true;
-				    }
-				    else {}																		// It will be an error
-			    }
-			    else {}																			// It will be an error
+                else {
+                    require(parameter_inc());
+                    p_node.push_back(result);
+                    require(check_char(offset.top(), ")"));
+                    p_node.push_back(Node(tokens[offset.top()], __func__));
+                    ++offset.top();
+                    if(!check_type(result = direct_abstract_declarator(true)))
+                        p_node.push_back(result);
+                }
 		    }
 	    }
 	    else if(check_char(offset.top(), "[")) {
@@ -1428,40 +1092,28 @@ namespace Translator {
 		    if(check_char(offset.top() + 1, "]")) {
 			    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
                 offset.top() += 2;
-			    if(!check_type(result = direct_abstract_declarator(true))) {
+			    if(!check_type(result = direct_abstract_declarator(true)))
 				    p_node.push_back(result);
-				    found = true;
-			    }
-			    found = true;
 		    }
-		    else if(conditional_inc()) {
-			    p_node.push_back(result);
-			    if(check_char(offset.top(), "]")) {
-				    p_node.push_back(Node(tokens[offset.top()], __func__));
-                    ++offset.top();
-				    if(!check_type(result = direct_abstract_declarator(true))) {
-					    p_node.push_back(result);
-					    found = true;
-				    }
-				    found = true;
-			    }
-			    else {}																			// It will be an error
-		    }
-		    else {}																				// It will be an error
+            else {
+                require(conditional_inc());
+                p_node.push_back(result);
+                require(check_char(offset.top(), "]"));
+                p_node.push_back(Node(tokens[offset.top()], __func__));
+                ++offset.top();
+                if(!check_type(result = direct_abstract_declarator(true)))
+                    p_node.push_back(result);
+            }
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::initializer() {
 	    prepare();
-	    int found = 0;	// Types: 0 - nothing found, 1 - found function, 2 - found token
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -1469,34 +1121,25 @@ namespace Translator {
 
 	    if(!check_type(result = assignment_expression())) {
 		    p_node.push_back(result);
-		    found = 1;
 	    }
 	    else if(check_char(offset.top(), "{")) {
 		    p_node.push_back(Node(tokens[offset.top()], __func__));
             ++offset.top();
-		    if(!check_type(result = initializer_list())) {
-			    p_node.push_back(result);
-			    if(check_char(offset.top(), "}")) {
-				    p_node.push_back(Node(tokens[offset.top()], __func__));
-				    found = 2;
-			    }
-			    else {}																		// It will be an error
-		    }
-		    else {}																			// It will be an error
+            require(!check_type(result = initializer_list()));
+			p_node.push_back(result);
+            require(check_char(offset.top(), "}"));
+			p_node.push_back(Node(tokens[offset.top()], __func__));
+            ++offset.top();
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(found - 1);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::initializer_list() {			// Recursive
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -1507,69 +1150,37 @@ namespace Translator {
 		    if(check_char(offset.top(), ",")) {
 			    p_node.push_back(Node(tokens[offset.top()], __func__));
                 ++offset.top();
-			    if(!check_type(result = initializer_list())) {
-				    p_node.push_back(result);
-				    found = true;
-			    }
-			    else {}															// It will be an error
+                require(!check_type(result = initializer_list()));
+				p_node.push_back(result);
 		    }
-		    found = true; 
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::statement() {
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
 	    func_log(__func__);
 
-	    if(!check_type(result = labeled_statement())) {
-		    p_node.push_back(result);
-		    found = true;
-	    }
-	    else if(!check_type(result = compound_statement())) {
-		    p_node.push_back(result);
-		    found = true;
-	    }
-	    else if(!check_type(result = expression_statement())) {
-		    p_node.push_back(result);
-		    found = true;
-	    }
-	    else if(!check_type(result = selection_statement())) {
-		    p_node.push_back(result);
-		    found = true;
-	    }
-	    else if(!check_type(result = iteration_statement())) {
-		    p_node.push_back(result);
-		    found = true;
-	    }
-	    else if(!check_type(result = jump_statement())) {
-		    p_node.push_back(result);
-		    found = true;
-	    }
-
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+        if(!check_type(result = labeled_statement()) || !check_type(result = compound_statement()) ||
+                !check_type(result = expression_statement()) || !check_type(result = selection_statement()) ||
+                !check_type(result = iteration_statement()) || !check_type(result = jump_statement())) {
+            p_node.push_back(result);
+            commit(0);
+            return p_node;
+        }
+        else
+            return Node(Token(), __func__);
     }
 
     Node Parser::labeled_statement() {
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -1578,42 +1189,27 @@ namespace Translator {
 	    if(check_type(offset.top(), Type::CASE)) {
 		    p_node.push_back(Node(tokens[offset.top()], __func__));
             ++offset.top();
-		    if(!check_type(result = conditional_expression())) {
-			    p_node.push_back(result);
-			    if(check_char(offset.top(), ":")) {
-				    p_node.push_back(Node(tokens[offset.top()], __func__));
-                    ++offset.top();
-				    if(!check_type(result = statement())) {
-					    p_node.push_back(result);
-					    found = true;
-				    }
-				    else {}															// It will be an error
-			    }
-			    else {}																// It will be an error
-		    }
-		    else {}																	// It will be an error
+            require(!check_type(result = conditional_expression()));
+			p_node.push_back(result);
+            require(check_char(offset.top(), ":"));
+			p_node.push_back(Node(tokens[offset.top()], __func__));
+            ++offset.top();
+            require(!check_type(result = statement()));
+			p_node.push_back(result);
 	    }
 	    else if(check_type(offset.top(), Type::DEFAULT)) {
 		    p_node.push_back(Node(tokens[offset.top()], __func__));
-		    if(check_char(offset.top() + 1, ":")) {
-			    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-                offset.top() += 2;
-			    if(!check_type(result = statement())) {
-				    p_node.push_back(result);
-				    found = true;
-			    }
-			    else {}															// It will be an error
-		    }
-		    else {}																// It will be an error
+            require(check_char(offset.top() + 1, ":"));
+			p_node.push_back(Node(tokens[offset.top() + 1], __func__));
+            offset.top() += 2;
+            require(!check_type(result = statement()));
+			p_node.push_back(result);
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::compound_statement() {
@@ -1637,34 +1233,28 @@ namespace Translator {
 		    }
 		    else if(statement_inc()) {
 			    p_node.push_back(result);
-			    if(check_char(offset.top(), "}")) {
-				    p_node.push_back(Node(tokens[offset.top()], __func__));
-				    found = 1;
-			    }
-			    else {}																	// It will be an error
+                require(check_char(offset.top(), "}"));
+				p_node.push_back(Node(tokens[offset.top()], __func__));
+				found = 1;
 		    }
 
 		    if(!found) {
                 offset.pop();
                 prepare();
                 ++offset.top();
-			    if(!check_type(result = declaration_list())) {
-				    p_node.push_back(result);
-				    if(check_char(offset.top(), "}")) {
-					    p_node.push_back(Node(tokens[offset.top()], __func__));
-					    found = 1;
-				    }
-				    else if(!check_type(result = statement_list())) {
-					    p_node.push_back(result);
-					    if(check_char(offset.top(), "}")) {
-						    p_node.push_back(Node(tokens[offset.top()], __func__));
-						    found = 1;
-					    }
-					    else {}															// It will be an error
-				    }
-				    else {}																// It will be an error
-			    }
-			    else {}																	// It will be an error
+                require(!check_type(result = declaration_list()));
+				p_node.push_back(result);
+				if(check_char(offset.top(), "}")) {
+					p_node.push_back(Node(tokens[offset.top()], __func__));
+					found = 1;
+				}
+                else {
+                    require(!check_type(result = statement_list()));
+                    p_node.push_back(result);
+                    require(check_char(offset.top(), "}"));
+                    p_node.push_back(Node(tokens[offset.top()], __func__));
+                    found = 1;
+                }
 		    }
 	    }
 
@@ -1679,7 +1269,6 @@ namespace Translator {
 
     Node Parser::declaration_list() {			// Recursive
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -1687,25 +1276,18 @@ namespace Translator {
 
 	    if(!check_type(result = declaration())) {
 		    p_node.push_back(result);
-		    if(!check_type(result = declaration_list())) {
+		    if(!check_type(result = declaration_list()))
 			    p_node.push_back(result);
-			    found = true;
-		    }
-		    found = true; 
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::statement_list() {				// Recursive
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -1713,25 +1295,18 @@ namespace Translator {
 
 	    if(!check_type(result = statement())) {
 		    p_node.push_back(result);
-		    if(!check_type(result = statement_list())) {
+		    if(!check_type(result = statement_list()))
 			    p_node.push_back(result);
-			    found = true;
-		    }
-		    found = true; 
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::expression_statement() {
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -1739,29 +1314,21 @@ namespace Translator {
 
 	    if(check_char(offset.top(), ";")) {
 		    p_node.push_back(Node(tokens[offset.top()], __func__));
-		    found = true;
 	    }
 	    else if(!check_type(result = expression())) {
 		    p_node.push_back(result);
-		    if(check_char(offset.top(), ";")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
-			    found = true;
-		    }
-		    else {}																// It will be an error
+            require(check_char(offset.top(), ";"));
+			p_node.push_back(Node(tokens[offset.top()], __func__));
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(1);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(1);
+		return p_node;
     }
 
     Node Parser::selection_statement() {
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -1772,73 +1339,48 @@ namespace Translator {
                 p_node.push_back(Node(tokens[offset.top()], __func__));
             else
 		        p_node.push_back(Node(tokens[offset.top()], __func__, "if "));
-		    if(check_char(offset.top() + 1, "(")) {
-			    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-                offset.top() += 2;
-			    if(!check_type(result = expression())) {
-				    p_node.push_back(result);
-				    if(check_char(offset.top(), ")")) {
-					    p_node.push_back(Node(tokens[offset.top()], __func__, ": ", 1, true));
-                        ++offset.top();
-					    if(!check_type(result = statement())) {
-						    p_node.push_back(result);
-						    if(check_type(offset.top(), Type::ELSE)) {
-                                if(tokens[offset.top() + 1].get_type() == Type::IF)
-                                    p_node.push_back(Node(tokens[offset.top()], __func__, "elif "));
-                                else
-							        p_node.push_back(Node(tokens[offset.top()], __func__, "else: ", 1, true));
-                                ++offset.top();
-							    if(!check_type(result = statement())) {
-								    p_node.push_back(result);
-								    found = true;
-							    }
-							    else {}													// It will be an error
-						    }
-						    found = true;
-					    }
-					    else {}															// It will be an error
-				    }
-				    else {}																// It will be an error
-			    }
-			    else {}																	// It will be an error
-		    }
-		    else {}																		// It will be an error
+            require(check_char(offset.top() + 1, "("));
+			p_node.push_back(Node(tokens[offset.top() + 1], __func__));
+            offset.top() += 2;
+            require(!check_type(result = expression()));
+			p_node.push_back(result);
+            require(check_char(offset.top(), ")"));
+			p_node.push_back(Node(tokens[offset.top()], __func__, ": ", 1, true));
+            ++offset.top();
+            require(!check_type(result = statement()));
+			p_node.push_back(result);
+			if(check_type(offset.top(), Type::ELSE)) {
+                if(tokens[offset.top() + 1].get_type() == Type::IF)
+                    p_node.push_back(Node(tokens[offset.top()], __func__, "elif "));
+                else
+					p_node.push_back(Node(tokens[offset.top()], __func__, "else: ", 1, true));
+                ++offset.top();
+                require(!check_type(result = statement()));
+				p_node.push_back(result);
+			}
 	    }
 	    else if(check_type(offset.top(), Type::SWITCH)) {
 		    p_node.push_back(Node(tokens[offset.top()], __func__));
-		    if(check_char(offset.top() + 1, "(")) {
-			    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-                offset.top() += 2;
-			    if(!check_type(result = expression())) {
-				    p_node.push_back(result);
-				    if(check_char(offset.top(), ")")) {
-					    p_node.push_back(Node(tokens[offset.top()], __func__));
-                        ++offset.top();
-					    if(!check_type(result = statement())) {
-						    p_node.push_back(result);
-						    found = true;
-					    }
-					    else {}															// It will be an error
-				    }
-				    else {}																// It will be an error
-			    }
-			    else {}																	// It will be an error
-		    }
-		    else {}																		// It will be an error
+            require(check_char(offset.top() + 1, "("));
+			p_node.push_back(Node(tokens[offset.top() + 1], __func__));
+            offset.top() += 2;
+            require(!check_type(result = expression()));
+			p_node.push_back(result);
+            require(check_char(offset.top(), ")"));
+			p_node.push_back(Node(tokens[offset.top()], __func__));
+            ++offset.top();
+            require(!check_type(result = statement()));
+			p_node.push_back(result);
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::iteration_statement() {
 	    prepare();
-	    int found = 0;	// Types: 0 - nothing found, 1 - found function, 2 - found token
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -1846,112 +1388,69 @@ namespace Translator {
 
 	    if(check_type(offset.top(), Type::WHILE)) {
 		    p_node.push_back(Node(tokens[offset.top()], __func__));
-		    if(check_char(offset.top() + 1, "(")) {
-			    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-                offset.top() += 2;
-			    if(!check_type(result = expression())) {
-				    p_node.push_back(result);
-				    if(check_char(offset.top(), ")")) {
-					    p_node.push_back(Node(tokens[offset.top()], __func__));
-                        ++offset.top();
-					    if(!check_type(result = statement())) {
-						    p_node.push_back(result);
-						    found = 1;
-					    }
-					    else {}																// It will be an error
-				    }
-				    else {}																	// It will be an error
-			    }
-			    else {}																		// It will be an error
-		    }
-		    else {}																			// It will be an error
+            require(check_char(offset.top() + 1, "("));
+			p_node.push_back(Node(tokens[offset.top() + 1], __func__));
+            offset.top() += 2;
+            require(!check_type(result = expression()));
+			p_node.push_back(result);
+            require(check_char(offset.top(), ")"));
+			p_node.push_back(Node(tokens[offset.top()], __func__));
+            ++offset.top();
+            require(!check_type(result = statement()));
+			p_node.push_back(result);
 	    }
 	    else if(check_type(offset.top(), Type::DO)) {
 		    p_node.push_back(Node(tokens[offset.top()], __func__));
             ++offset.top();
-		    if(!check_type(result = statement())) {
-			    p_node.push_back(result);
-			    if(check_type(offset.top(), Type::WHILE)) {
-				    p_node.push_back(Node(tokens[offset.top()], __func__));
-				    if(check_char(offset.top() + 1, "(")) {
-					    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-                        offset.top() += 2;
-					    if(!check_type(result = expression())) {
-						    p_node.push_back(result);
-						    if(check_char(offset.top(), ")")) {
-							    p_node.push_back(Node(tokens[offset.top()], __func__));
-							    if(check_char(offset.top() + 1, ";")) {
-								    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-								    found = 2;
-							    }
-							    else {}														// It will be an error
-						    }
-						    else {}															// It will be an error
-					    }
-					    else {}																// It will be an error
-				    }
-				    else {}																	// It will be an error
-			    }
-			    else {}																		// It will be an error
-		    }
-		    else {}																			// It will be an error
+            require(!check_type(result = statement()));
+			p_node.push_back(result);
+            require(check_type(offset.top(), Type::WHILE));
+			p_node.push_back(Node(tokens[offset.top()], __func__));
+            require(check_char(offset.top() + 1, "("));
+			p_node.push_back(Node(tokens[offset.top() + 1], __func__));
+            offset.top() += 2;
+            require(!check_type(result = expression()));
+			p_node.push_back(result);
+            require(check_char(offset.top(), ")"));
+			p_node.push_back(Node(tokens[offset.top()], __func__));
+            require(check_char(offset.top() + 1, ";"));
+			p_node.push_back(Node(tokens[offset.top() + 1], __func__));
+            offset.top() += 2;
 	    }
 	    else if(check_type(offset.top(), Type::FOR)) {
 		    p_node.push_back(Node(tokens[offset.top()], __func__));
-		    if(check_char(offset.top() + 1, "(")) {
-			    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-                offset.top() += 2;
-			    if(!check_type(result = expression_statement())) {
-				    p_node.push_back(result);
-				    if(!check_type(result = expression_statement())) {
-					    p_node.push_back(result);
-					    if(check_char(offset.top(), ")")) {
-						    p_node.push_back(Node(tokens[offset.top()], __func__));
-                            ++offset.top();
-						    if(!check_type(result = statement())) {
-							    p_node.push_back(result);
-							    found = 1;
-						    }
-						    else {}															// It will be an error
-					    }
-					    else if(!check_type(result = expression())) {
-						    p_node.push_back(result);
-						    if(check_char(offset.top(), ")")) {
-							    p_node.push_back(Node(tokens[offset.top()], __func__));
-                                ++offset.top();
-							    if(!check_type(result = statement())) {
-								    p_node.push_back(result);
-								    found = 1;
-							    }
-							    else {}														// It will be an error
-						    }
-						    else {}															// It will be an error
-					    }
-					    else {}																// It will be an error
-				    }
-				    else {}																	// It will be an error
-			    }
-			    else {}																		// It will be an error
-		    }
-		    else {}																			// It will be an error
+            require(check_char(offset.top() + 1, "("));
+			p_node.push_back(Node(tokens[offset.top() + 1], __func__));
+            offset.top() += 2;
+            require(!check_type(result = expression_statement()));
+			p_node.push_back(result);
+            require(!check_type(result = expression_statement()));
+			p_node.push_back(result);
+			if(check_char(offset.top(), ")")) {
+				p_node.push_back(Node(tokens[offset.top()], __func__));
+                ++offset.top();
+                require(!check_type(result = statement()));
+				p_node.push_back(result);
+			}
+            else {
+                require(!check_type(result = expression()));
+                p_node.push_back(result);
+                require(check_char(offset.top(), ")"));
+                p_node.push_back(Node(tokens[offset.top()], __func__));
+                ++offset.top();
+                require(!check_type(result = statement()));
+                p_node.push_back(result);
+            }
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found == 2) {
-		    commit(2);
-		    return p_node;
-	    }
-	    else if(found == 1) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
     Node Parser::jump_statement() {
 	    prepare();
-	    int found = 0;	// Types: 0 - nothing found, 1 - found token after function, 2 - found only token
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
@@ -1964,41 +1463,31 @@ namespace Translator {
 
 	    if(check_type(offset.top(), Type::BREAK)) {
 		    p_node.push_back(Node(tokens[offset.top()], __func__, "break"));
-		    if(check_char(offset.top() + 1, ";")) {
-			    p_node.push_back(Node(tokens[offset.top() + 1], __func__, "", -1, true));
-			    found = 2;
-		    }
-		    else {}															// It will be an error
+            require(check_char(offset.top() + 1, ";"));
+			p_node.push_back(Node(tokens[offset.top() + 1], __func__, "", -1, true));
 	    }
 	    else if(check_type(offset.top(), Type::RETURN)) {
 		    p_node.push_back(Node(tokens[offset.top()], __func__, "return "));
 		    if(check_char(offset.top() + 1, ";")) {
 			    p_node.push_back(Node(tokens[offset.top() + 1], __func__, "", -1, true));
-			    found = 2;
+                ++offset.top();
 		    }
-		    else if(expression_inc()) {
-			    p_node.push_back(result);
-			    if(check_char(offset.top(), ";")) {
-				    p_node.push_back(Node(tokens[offset.top()], __func__, "", -1, true));
-				    found = 1;
-			    }
-			    else {}														// It will be an error
-		    }
-		    else {}															// It will be an error
+            else {
+                require(expression_inc());
+                p_node.push_back(result);
+                require(check_char(offset.top(), ";"));
+                p_node.push_back(Node(tokens[offset.top()], __func__, "", -1, true));
+            }
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(found);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(1);
+		return p_node;
     }
 
     Node Parser::translation_unit() {			// Recursive
         prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__, "# After translation\n# Remember, you should check the code!\n\n");
 	    Node result;
 
@@ -2006,51 +1495,34 @@ namespace Translator {
 
 	    if(!check_type(result = external_declaration())) {
 		    p_node.push_back(result);
-		    if(!check_type(result = translation_unit())) {
+		    if(!check_type(result = translation_unit()))
 			    p_node.push_back(result);
-			    found = true;
-		    }
-		    found = true; 
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-            commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+        commit(0);
+		return p_node;
     }
 
     Node Parser::external_declaration() {
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
 	    func_log(__func__);
 
-	    if(!check_type(result = function_definition())) {
+	    if(!check_type(result = function_definition()) || !check_type(result = declaration())) {
 		    p_node.push_back(result);
-		    found = true;
+            commit(0);
+            return p_node;
 	    }
-	    else if(!check_type(result = declaration())) {
-		    p_node.push_back(result);
-		    found = true;
-	    }
-
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+        else
+            return Node(Token(), __func__);
     }
 
     Node Parser::function_definition() {
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__, "def ");
 	    Node result;
 
@@ -2058,48 +1530,35 @@ namespace Translator {
 
 	    if(!check_type(result = declaration_specifiers())) {
 		    p_node.push_back(result);
-		    if(!check_type(result = direct_declarator(false))) {
-			    p_node.push_back(result);
-			    if(!check_type(result = declaration_list())) {
-				    p_node.push_back(result);
-				    if(!check_type(result = compound_statement())) {
-					    p_node.push_back(result);
-					    found = true;
-				    }
-				    else {}																	// It will be an error
-			    }
-			    else if(!check_type(result = compound_statement())) {
-				    p_node.push_back(result);
-				    found = true;
-			    }
-			    else {}																		// It will be an error
-		    }
-		    else {}																			// It will be an error
+            require(!check_type(result = direct_declarator(false)));
+			p_node.push_back(result);
+			if(!check_type(result = declaration_list())) {
+				p_node.push_back(result);
+                require(!check_type(result = compound_statement()));
+				p_node.push_back(result);
+			}
+            else {
+                require(!check_type(result = compound_statement()));
+                p_node.push_back(result);
+            }
 	    }
 	    else if(!check_type(result = direct_declarator(false))) {
 		    p_node.push_back(result);
 		    if(!check_type(result = declaration_list())) {
 			    p_node.push_back(result);
-			    if(!check_type(result = compound_statement())) {
-				    p_node.push_back(result);
-				    found = true;
-			    }
-			    else {}																		// It will be an error
+                require(!check_type(result = compound_statement()));
+				p_node.push_back(result);
 		    }
-		    else if(!check_type(result = compound_statement())) {
-			    p_node.push_back(result);
-			    found = true;
-		    }
-		    else {}																			// It will be an error
+            else {
+                require(!check_type(result = compound_statement()));
+                p_node.push_back(result);
+            }
 	    }
+        else
+            return Node(Token(), __func__);
 
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit(0);
+		return p_node;
     }
 
 };

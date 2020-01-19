@@ -12,10 +12,15 @@ namespace Translator {
             throw Parser_Exception(error_msg);
     }
 
-    void Parser::commit(int inc) {
+    void Parser::commit() {
         int token_number = offset.top();
         offset.pop();
-        offset.top() = token_number + inc;
+        offset.top() = token_number;
+    }
+
+    Node Parser::undo(const char* func) {
+        offset.pop();
+        return Node(Token(), func);
     }
 
     void Parser::start_parsing() {
@@ -43,101 +48,99 @@ namespace Translator {
 		    case Type::CONSTANT:
 		    case Type::STRING_LITERAL:
 			    p_node.push_back(Node(tokens[offset.top()], __func__, tokens[offset.top()].get_chars()));
+                ++offset.top();
 			    break;
 		    default: {
 			    if(check_char(offset.top(), "(")) {
-				    p_node.push_back(Node(tokens[offset.top()], __func__));
-                    ++offset.top();
+				    p_node.push_back(Node(tokens[offset.top()++], __func__));
                     require(!check_type(result = expression()));
 					p_node.push_back(result);
                     require(check_char(offset.top(), ")"));
-					p_node.push_back(Node(tokens[offset.top()], __func__));
+					p_node.push_back(Node(tokens[offset.top()++], __func__));
 			    }
                 else
-                    return Node(Token(), __func__);
+                    return undo(__func__);
 			    break;
 		    }
 	    }
-        commit(1);
+        commit();
 		return p_node;
     }
 
-    Node Parser::postfix_expression(bool recursive) {			// Recursive
+    Node Parser::postfix_expression() {			// Recursive
         prepare();
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
 	    func_log(__func__);
 
-        auto condition_inc = [&]() {
-            ++offset.top();
-            return !check_type(result = argument_expression_list());
-        };
-
-	    if(!recursive) {
-		    if(!check_type(result = primary_expression())) {
-			    p_node.push_back(result);
-			    if(!check_type(result = postfix_expression(true)))
-				    p_node.push_back(result);
-		    }
-            else
-                return Node(Token(), __func__);
-	    }
-	    else {
-		    if(check_char(offset.top(),"(")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__, "("));
-			    if(check_char(offset.top() + 1, ")")) {
-				    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-                    offset.top() += 2;
-				    if(!check_type(result = postfix_expression(true)))
-					    p_node.push_back(result);
-			    }
-                else {
-                    require(condition_inc());
-                    p_node.push_back(result);
-                    require(check_char(offset.top(), ")"));
-                    p_node.push_back(Node(tokens[offset.top()], __func__, ")"));
-                    ++offset.top();
-                    if(!check_type(result = postfix_expression(true)))
-                        p_node.push_back(result);
-                }
-		    }
-		    else if(check_char(offset.top(), ".")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
-                require(check_type(offset.top() + 1, Type::IDENTIFIER));
-				p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-                offset.top() += 2;
-				if(!check_type(result = postfix_expression(true)))
-					p_node.push_back(result);
-		    }
-		    else if(check_type(offset.top(), Type::INC_OP)) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
-			    if(!check_type(result = postfix_expression(true)))
-				    p_node.push_back(result);
-		    }
-		    else if(check_type(offset.top(), Type::DEC_OP)) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
-			    if(!check_type(result = postfix_expression(true)))
-				    p_node.push_back(result);
-		    }
-		    else if(check_char(offset.top(), "[")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
-                require(!check_type(result = expression()));
+		if(!check_type(result = primary_expression())) {
+			p_node.push_back(result);
+			if(!check_type(result = postfix_expression_rec()))
 				p_node.push_back(result);
-                require(check_char(offset.top(), "]"));
-				p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
-				if(!check_type(result = postfix_expression(true)))
-					p_node.push_back(result);
-		    }
-            else
-                return Node(Token(), __func__);
-	    }
-        commit(0);
+		}
+        else
+            return undo(__func__);
+
+        commit();
 		return p_node;
+    }
+
+    Node Parser::postfix_expression_rec() {
+        prepare();
+        Node p_node(Token(Type::parsing), __func__);
+        Node result;
+
+        func_log(__func__);
+
+        if(check_char(offset.top(), "(")) {
+            p_node.push_back(Node(tokens[offset.top()], __func__, "("));
+            if(check_char(++offset.top(), ")")) {
+                p_node.push_back(Node(tokens[offset.top()++], __func__, ")"));
+                if(!check_type(result = postfix_expression_rec()))
+                    p_node.push_back(result);
+            }
+            else {
+                require(!check_type(result = argument_expression_list()));
+                p_node.push_back(result);
+                require(check_char(offset.top(), ")"));
+                p_node.push_back(Node(tokens[offset.top()++], __func__, ")"));
+                if(!check_type(result = postfix_expression_rec()))
+                    p_node.push_back(result);
+            }
+        }
+        else if(check_char(offset.top(), ".")) {
+            p_node.push_back(Node(tokens[offset.top()], __func__, "."));
+            require(check_type(++offset.top(), Type::IDENTIFIER));
+            p_node.push_back(Node(tokens[offset.top()], __func__, tokens[offset.top()].get_chars()));
+            ++offset.top();
+            if(!check_type(result = postfix_expression_rec()))
+                p_node.push_back(result);
+        }
+        else if(check_type(offset.top(), Type::INC_OP)) {
+            p_node.push_back(Node(tokens[offset.top()++], __func__, "++"));
+            if(!check_type(result = postfix_expression_rec()))
+                p_node.push_back(result);
+        }
+        else if(check_type(offset.top(), Type::DEC_OP)) {
+            p_node.push_back(Node(tokens[offset.top()++], __func__, "--"));
+            if(!check_type(result = postfix_expression_rec()))
+                p_node.push_back(result);
+        }
+        else if(check_char(offset.top(), "[")) {
+            p_node.push_back(Node(tokens[offset.top()++], __func__, "["));
+            require(!check_type(result = expression()));
+            p_node.push_back(result);
+            require(check_char(offset.top(), "]"));
+            p_node.push_back(Node(tokens[offset.top()++], __func__, "]"));
+            if(!check_type(result = postfix_expression_rec()))
+                p_node.push_back(result);
+        }
+        else
+            return undo(__func__);
+
+        commit();
+        return p_node;
     }
 
     Node Parser::argument_expression_list() {	// Recursive
@@ -150,16 +153,15 @@ namespace Translator {
 	    if(!check_type(result = assignment_expression())) {
 		    p_node.push_back(result);
 		    if(check_char(offset.top(), ",")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
+			    p_node.push_back(Node(tokens[offset.top()++], __func__, ", "));
                 require(!check_type(result = argument_expression_list()));
 				p_node.push_back(result);
 		    }
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-        commit(0);
+        commit();
 		return p_node;
     }
 
@@ -170,11 +172,11 @@ namespace Translator {
 
 	    func_log(__func__);
 
-	    if(!check_type(result = postfix_expression(false))) {
+	    if(!check_type(result = postfix_expression())) {
 		    p_node.push_back(result);
 	    }
 	    else if(check_type(offset.top(), Type::INC_OP) || check_type(offset.top(), Type::DEC_OP)) {
-		    p_node.push_back(Node(tokens[offset.top()], __func__));
+		    p_node.push_back(Node(tokens[offset.top()], __func__, tokens[offset.top()].get_chars()));
             ++offset.top();
             require(!check_type(result = unary_expression()));
 			p_node.push_back(result);
@@ -185,9 +187,9 @@ namespace Translator {
 			p_node.push_back(result);
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-        commit(0);
+        commit();
 		return p_node;
     }
 
@@ -200,12 +202,14 @@ namespace Translator {
 
 	    std::string tokens_chars = tokens[offset.top()].get_chars();
 
-	    if(tokens_chars == "*" || tokens_chars == "+" || tokens_chars == "-" || tokens_chars == "!")
-		    p_node.push_back(Node(tokens[offset.top()], __func__));
+	    if(tokens_chars == "*" || tokens_chars == "+" || tokens_chars == "-")
+		    p_node.push_back(Node(tokens[offset.top()++], __func__, tokens_chars));
+        else if(tokens_chars == "!")
+            p_node.push_back(Node(tokens[offset.top()++], __func__, "not "));
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-        commit(1);
+        commit();
 		return p_node;
     }
 
@@ -220,20 +224,18 @@ namespace Translator {
 		    p_node.push_back(result);
 	    }
 	    else if(check_char(offset.top(), "(")) {
-		    p_node.push_back(Node(tokens[offset.top()], __func__));
-            ++offset.top();
+		    p_node.push_back(Node(tokens[offset.top()++], __func__, "("));
             require(!check_type(result = type_name()));
 			p_node.push_back(result);
             require(check_char(offset.top(), ")"));
-			p_node.push_back(Node(tokens[offset.top()], __func__));
-            ++offset.top();
+			p_node.push_back(Node(tokens[offset.top()++], __func__, ")"));
             require(!check_type(result = cast_expression()));
 			p_node.push_back(result);
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-        commit(0);
+        commit();
 		return p_node;
     }
 
@@ -248,16 +250,15 @@ namespace Translator {
 		    p_node.push_back(result);
             std::string tokens_chars = tokens[offset.top()].get_chars();
 		    if(tokens_chars == "*" || tokens_chars == "/" || tokens_chars == "%") {
-			    p_node.push_back(Node(tokens[offset.top()], __func__, tokens[offset.top()].get_chars()));
-                ++offset.top();
+			    p_node.push_back(Node(tokens[offset.top()++], __func__, tokens_chars));
                 require(!check_type(result = multiplicative_expression()));
 				p_node.push_back(result);
 		    }
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-        commit(0);
+        commit();
 		return p_node;
     }
 
@@ -278,9 +279,9 @@ namespace Translator {
 		    }
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-        commit(0);
+        commit();
 		return p_node;
     }
 
@@ -295,16 +296,16 @@ namespace Translator {
 		    p_node.push_back(result);
 		    if(check_char(offset.top(), "<") || check_char(offset.top(), ">") ||
 			        check_type(offset.top(), Type::LE_OP) || check_type(offset.top(), Type::GE_OP)) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
+			    p_node.push_back(Node(tokens[offset.top()], __func__, tokens[offset.top()].get_chars()));
                 ++offset.top();
                 require(!check_type(result = relational_expression()));
 				p_node.push_back(result);
 		    }
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-        commit(0);
+        commit();
 		return p_node;
     }
 
@@ -325,9 +326,9 @@ namespace Translator {
 		    }
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-        commit(0);
+        commit();
 		return p_node;
     }
 
@@ -341,16 +342,15 @@ namespace Translator {
 	    if(!check_type(result = equality_expression())) {
 		    p_node.push_back(result);
 		    if(check_type(offset.top(), Type::AND_OP)) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
+			    p_node.push_back(Node(tokens[offset.top()++], __func__, " and "));
                 require(!check_type(result = logical_and_expression()));
 				p_node.push_back(result);
 		    }
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-        commit(0);
+        commit();
 		return p_node;
     }
 
@@ -364,16 +364,15 @@ namespace Translator {
 	    if(!check_type(result = logical_and_expression())) {
 		    p_node.push_back(result);
 		    if(check_type(offset.top(), Type::OR_OP)) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
+			    p_node.push_back(Node(tokens[offset.top()++], __func__, " or "));
                 require(!check_type(result = logical_or_expression()));
 				p_node.push_back(result);
 		    }
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -387,21 +386,19 @@ namespace Translator {
 	    if(!check_type(result = logical_or_expression())) {
 		    p_node.push_back(result);
 		    if(check_char(offset.top(), "?")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
+			    p_node.push_back(Node(tokens[offset.top()++], __func__));
                 require(!check_type(result = expression()));
 				p_node.push_back(result);
                 require(check_char(offset.top(), ":"));
-				p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
+				p_node.push_back(Node(tokens[offset.top()++], __func__));
                 require(!check_type(result = conditional_expression()));
 				p_node.push_back(result);
 		    }
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -423,9 +420,9 @@ namespace Translator {
 			p_node.push_back(result);
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -442,18 +439,19 @@ namespace Translator {
 		    case Type::MOD_ASSIGN:
 		    case Type::ADD_ASSIGN:
 		    case Type::SUB_ASSIGN:
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
+			    p_node.push_back(Node(tokens[offset.top()], __func__, tokens[offset.top()].get_chars()));
+                ++offset.top();
 			    break;
 		    default: {
 			    if(check_char(offset.top(), "="))
-				    p_node.push_back(Node(tokens[offset.top()], __func__));
+				    p_node.push_back(Node(tokens[offset.top()++], __func__, " = "));
                 else
-                    return Node(Token(), __func__);
+                    return undo(__func__);
 			    break;
 		    }
 	    }
 
-		commit(1);
+		commit();
 		return p_node;
     }
 
@@ -467,16 +465,15 @@ namespace Translator {
 	    if(!check_type(result = assignment_expression())) {
 		    p_node.push_back(result);
 		    if(check_char(offset.top(), ",")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
+			    p_node.push_back(Node(tokens[offset.top()++], __func__, ", "));
                 require(!check_type(result = expression()));
 				p_node.push_back(result);
 		    }
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -490,19 +487,19 @@ namespace Translator {
 	    if(!check_type(result = declaration_specifiers())) {
 		    p_node.push_back(result);
 		    if(check_char(offset.top(), ";")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
+			    p_node.push_back(Node(tokens[offset.top()++], __func__, "", 0, true));
 		    }
             else {
                 require(!check_type(result = init_declarator_list()));
                 p_node.push_back(result);
                 require(check_char(offset.top(), ";"));
-                p_node.push_back(Node(tokens[offset.top()], __func__));
+                p_node.push_back(Node(tokens[offset.top()++], __func__, "", 0, true));
             }
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(1);
+		commit();
 		return p_node;
     }
 
@@ -514,8 +511,7 @@ namespace Translator {
 	    func_log(__func__);
 
 	    if(check_type(offset.top(), Type::TYPEDEF)) {
-		    p_node.push_back(Node(tokens[offset.top()], __func__));
-            ++offset.top();
+		    p_node.push_back(Node(tokens[offset.top()++], __func__));
 		    if(!check_type(result = declaration_specifiers()))
 			    p_node.push_back(result);
 	    }
@@ -525,9 +521,9 @@ namespace Translator {
 			    p_node.push_back(result);
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -541,16 +537,15 @@ namespace Translator {
 	    if(!check_type(result = init_declarator())) {
 		    p_node.push_back(result);
 		    if(check_char(offset.top(), ",")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
+			    p_node.push_back(Node(tokens[offset.top()++], __func__, ", "));
                 require(!check_type(result = init_declarator_list()));
 				p_node.push_back(result);
 		    }
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -561,19 +556,18 @@ namespace Translator {
 
 	    func_log(__func__);
 
-	    if(!check_type(result = direct_declarator(false))) {
+	    if(!check_type(result = direct_declarator())) {
 		    p_node.push_back(result);
 		    if(check_char(offset.top(), "=")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
+			    p_node.push_back(Node(tokens[offset.top()++], __func__, " = "));
                 require(!check_type(result = initializer()));
 				p_node.push_back(result);
 		    }
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -594,8 +588,7 @@ namespace Translator {
 		    case Type::DOUBLE:
 		    case Type::SIGNED:
 		    case Type::UNSIGNED:
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
+			    p_node.push_back(Node(tokens[offset.top()++], __func__));
 			    break;
 		    default: {
 			    if(!check_type(result = struct_or_union_specifier()))
@@ -603,12 +596,12 @@ namespace Translator {
 			    else if(!check_type(result = enum_specifier()))
 				    p_node.push_back(result);
                 else
-                    return Node(Token(), __func__);
+                    return undo(__func__);
 			    break;
 		    }
 	    }
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -620,35 +613,31 @@ namespace Translator {
 	    func_log(__func__);
 
 	    if(check_type(offset.top(), Type::STRUCT)) {
-		    p_node.push_back(Node(tokens[offset.top()], __func__));
-		    if(check_type(offset.top() + 1, Type::IDENTIFIER)) {
-			    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-			    if(check_char(offset.top() + 2, "{")) {
-				    p_node.push_back(Node(tokens[offset.top() + 2], __func__));
-                    offset.top() += 3;
+		    p_node.push_back(Node(tokens[offset.top()], __func__, "class "));
+		    if(check_type(++offset.top(), Type::IDENTIFIER)) {
+			    p_node.push_back(Node(tokens[offset.top()], __func__, tokens[offset.top()].get_chars()));
+                ++offset.top();
+			    if(check_char(offset.top(), "{")) {
+				    p_node.push_back(Node(tokens[offset.top()++], __func__, ": ", 1, true));
                     require(!check_type(result = struct_declaration_list()));
 					p_node.push_back(result);
                     require(check_char(offset.top(), "}"));
-					p_node.push_back(Node(tokens[offset.top()], __func__));
-                    ++offset.top();
+					p_node.push_back(Node(tokens[offset.top()++], __func__, "", -1, true));
 			    }
-                offset.top() += 2;
 		    }
             else {
-                require(check_char(offset.top() + 1, "{"));
-                p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-                offset.top() += 2;
+                require(check_char(offset.top(), "{"));
+                p_node.push_back(Node(tokens[offset.top()++], __func__, "struct: ", 1, true));
                 require(!check_type(result = struct_declaration_list()));
                 p_node.push_back(result);
                 require(check_char(offset.top(), "}"));
-                p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
+                p_node.push_back(Node(tokens[offset.top()++], __func__, "", -1, true));
             }
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-        commit(0);
+        commit();
 		return p_node;
     }
 
@@ -664,15 +653,14 @@ namespace Translator {
             require(!check_type(result = struct_declarator_list()));
 			p_node.push_back(result);
             require(check_char(offset.top(), ";"));
-			p_node.push_back(Node(tokens[offset.top()], __func__));
-            ++offset.top();
+			p_node.push_back(Node(tokens[offset.top()++], __func__));
 			if(!check_type(result = struct_declaration_list()))
 				p_node.push_back(result);
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -689,9 +677,9 @@ namespace Translator {
 			    p_node.push_back(result);
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -705,16 +693,15 @@ namespace Translator {
 	    if(!check_type(result = struct_declarator())) {
 		    p_node.push_back(result);
 		    if(check_char(offset.top(), ",")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
+			    p_node.push_back(Node(tokens[offset.top()++], __func__));
                 require(!check_type(result = struct_declarator_list()));
 				p_node.push_back(result);
 		    }
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 	
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -725,66 +712,59 @@ namespace Translator {
 
 	    func_log(__func__);
 
-	    if(!check_type(result = direct_declarator(false))) {
+	    if(!check_type(result = direct_declarator())) {
 		    p_node.push_back(result);
 		    if(check_char(offset.top(), ":")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
+			    p_node.push_back(Node(tokens[offset.top()++], __func__, ": "));
                 require(!check_type(result = conditional_expression()));
 				p_node.push_back(result);
 		    }
 	    }
 	    else if(check_char(offset.top(), ":")) {
-		    p_node.push_back(Node(tokens[offset.top()], __func__));
-            ++offset.top();
+		    p_node.push_back(Node(tokens[offset.top()++], __func__, ": "));
             require(!check_type(result = conditional_expression()));
 			p_node.push_back(result);
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
     Node Parser::enum_specifier() {
 	    prepare();
-	    int found = 0; // Types: 0 - nothing found, 1 - found other token, 2 - found IDENTIFIER as last
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
 	    func_log(__func__);
 
 	    if(check_type(offset.top(), Type::ENUM)) {
-		    p_node.push_back(Node(tokens[offset.top()], __func__));
-		    if(check_type(offset.top() + 1, Type::IDENTIFIER)) {
-			    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-			    if(check_char(offset.top() + 2, "{")) {
-				    p_node.push_back(Node(tokens[offset.top() + 2], __func__));
-                    offset.top() += 3;
+		    p_node.push_back(Node(tokens[offset.top()], __func__, "class "));
+		    if(check_type(++offset.top(), Type::IDENTIFIER)) {
+			    p_node.push_back(Node(tokens[offset.top()], __func__, tokens[offset.top()].get_chars()));
+                ++offset.top();
+			    if(check_char(offset.top(), "{")) {
+				    p_node.push_back(Node(tokens[offset.top()++], __func__, "(Enum): ", 1, true));
                     require(!check_type(result = enumerator_list()));
 					p_node.push_back(result);
                     require(check_char(offset.top(), "}"));
-					p_node.push_back(Node(tokens[offset.top()], __func__));
-					found = 1;
+					p_node.push_back(Node(tokens[offset.top()++], __func__, "", -1, true));
 			    }
-			    found = 2;
 		    }
             else {
-                require(check_char(offset.top() + 1, "{"));
-                p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-                offset.top() += 2;
+                require(check_char(offset.top(), "{"));
+                p_node.push_back(Node(tokens[offset.top()++], __func__, "enum(Enum): ", 1, true));
                 require(!check_type(result = enumerator_list()));
                 p_node.push_back(result);
                 require(check_char(offset.top(), "}"));
-                p_node.push_back(Node(tokens[offset.top()], __func__));
-                found = 1;
+                p_node.push_back(Node(tokens[offset.top()++], __func__, "", -1, true));
             }
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-        commit(found);
+        commit();
 		return p_node;
     }
 
@@ -798,16 +778,15 @@ namespace Translator {
 	    if(!check_type(result = enumerator())) {
 		    p_node.push_back(result);
 		    if(check_char(offset.top(), ",")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
+			    p_node.push_back(Node(tokens[offset.top()++], __func__, ", "));
                 require(!check_type(result = enumerator_list()));
 				p_node.push_back(result);
 		    }
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -819,138 +798,100 @@ namespace Translator {
 	    func_log(__func__);
 
 	    if(check_type(offset.top(), Type::IDENTIFIER)) {
-		    p_node.push_back(Node(tokens[offset.top()], __func__));
-		    if(check_char(offset.top() + 1, "=")) {
-			    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-                offset.top() += 2;
+		    p_node.push_back(Node(tokens[offset.top()], __func__, tokens[offset.top()].get_chars()));
+		    if(check_char(++offset.top(), "=")) {
+			    p_node.push_back(Node(tokens[offset.top()++], __func__, " = "));
                 require(!check_type(result = conditional_expression()));
 				p_node.push_back(result);
 		    }
-            ++offset.top();
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-        commit(0);
+        commit();
 		return p_node;
     }
 
-    Node Parser::direct_declarator(bool recursive) {							// Recursive
+    Node Parser::direct_declarator() {							// Recursive
 	    prepare();
-	    bool found = false;
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
 	    func_log(__func__);
 
-        auto conditional_inc = [&]() {
+		if(check_type(offset.top(), Type::IDENTIFIER)) {
+			p_node.push_back(Node(tokens[offset.top()], __func__, tokens[offset.top()].get_chars()));
             ++offset.top();
-            return !check_type(result = conditional_expression());
-        };
-
-        auto parameter_inc = [&]() {
-            ++offset.top();
-            return !check_type(result = parameter_list());
-        };
-
-	    if(!recursive) {
-		    if(check_type(offset.top(), Type::IDENTIFIER)) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__, tokens[offset.top()].get_chars()));
-                ++offset.top();
-			    if(!check_type(result = direct_declarator(true))) {
-				    p_node.push_back(result);
-				    found = true;
-			    }
-			    found = true;
-		    }
-		    else if(check_char(offset.top(), "(")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__, "("));
-                ++offset.top();
-                require(!check_type(result = direct_declarator(false)));
+			if(!check_type(result = direct_declarator_rec()))
 				p_node.push_back(result);
-                require(check_char(offset.top(), ")"));
-				p_node.push_back(Node(tokens[offset.top()], __func__, "): ", 1, true));
-                ++offset.top();
-				if(!check_type(result = direct_declarator(true))) {
-					p_node.push_back(result);
-					found = true;
-				}
-				found = true;
-		    }
-	    }
-	    else {
-		    if(check_char(offset.top(), "[")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__, "["));
-			    if(check_char(offset.top() + 1, "]")) {
-				    p_node.push_back(Node(tokens[offset.top() + 1], __func__, "]"));
-                    offset.top() += 2;
-				    if(!check_type(result = direct_declarator(true))) {
-					    p_node.push_back(result);
-					    found = true;
-				    }
-				    found = true;
-			    }
-                else {
-                    require(conditional_inc());
+		}
+		else if(check_char(offset.top(), "(")) {
+			p_node.push_back(Node(tokens[offset.top()++], __func__, "("));
+            require(!check_type(result = direct_declarator()));
+			p_node.push_back(result);
+            require(check_char(offset.top(), ")"));
+			p_node.push_back(Node(tokens[offset.top()++], __func__, "): ", 1, true));
+			if(!check_type(result = direct_declarator_rec()))
+				p_node.push_back(result);
+		}
+        else
+            return undo(__func__);
+
+		commit();
+		return p_node;
+    }
+
+    Node Parser::direct_declarator_rec() {
+        prepare();
+        Node p_node(Token(Type::parsing), __func__);
+        Node result;
+
+        func_log(__func__);
+
+        if(check_char(offset.top(), "[")) {
+            p_node.push_back(Node(tokens[offset.top()], __func__, "["));
+            if(check_char(++offset.top(), "]")) {
+                p_node.push_back(Node(tokens[offset.top()++], __func__, "]"));
+                if(!check_type(result = direct_declarator_rec()))
                     p_node.push_back(result);
-                    require(check_char(offset.top(), "]"));
-                    p_node.push_back(Node(tokens[offset.top()], __func__, "]"));
-                    ++offset.top();
-                    if(!check_type(result = direct_declarator(true))) {
-                        p_node.push_back(result);
-                        found = true;
-                    }
-                    found = true;
-                }
-		    }
-		    else if(check_char(offset.top(), "(")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__, "("));
-			    if(check_char(offset.top() + 1, ")")) {
-				    p_node.push_back(Node(tokens[offset.top() + 1], __func__, "): ", 1, true));
-                    offset.top() += 2;
-				    if(!check_type(result = direct_declarator(true))) {
-					    p_node.push_back(result);
-					    found = true;
-				    }
-				    found = true;
-			    }
-			    else if(parameter_inc()) {
-				    p_node.push_back(result);
-                    require(check_char(offset.top(), ")"));
-					p_node.push_back(Node(tokens[offset.top()], __func__, "): ", 1, true));
-                    ++offset.top();
-					if(!check_type(result = direct_declarator(true))) {
-						p_node.push_back(result);
-						found = true;
-					}
-					found = true;
-			    }
+            }
+            else {
+                require(!check_type(result = conditional_expression()));
+                p_node.push_back(result);
+                require(check_char(offset.top(), "]"));
+                p_node.push_back(Node(tokens[offset.top()++], __func__, "]"));
+                if(!check_type(result = direct_declarator_rec()))
+                    p_node.push_back(result);
+            }
+        }
+        else if(check_char(offset.top(), "(")) {
+            p_node.push_back(Node(tokens[offset.top()], __func__, "("));
+            if(check_char(++offset.top(), ")")) {
+                p_node.push_back(Node(tokens[offset.top()++], __func__, "): ", 1, true));
+                if(!check_type(result = direct_declarator_rec()))
+                    p_node.push_back(result);
+            }
+            else if(!check_type(result = parameter_list())) {
+                p_node.push_back(result);
+                require(check_char(offset.top(), ")"));
+                p_node.push_back(Node(tokens[offset.top()++], __func__, "): ", 1, true));
+                if(!check_type(result = direct_declarator_rec()))
+                    p_node.push_back(result);
+            }
+            else {
+                require(!check_type(result = identifier_list()));
+                p_node.push_back(result);
+                require(check_char(offset.top(), ")"));
+                p_node.push_back(Node(tokens[offset.top()++], __func__, "): ", 1, true));
+                if(!check_type(result = direct_declarator_rec()))
+                    p_node.push_back(result);
+            }
+        }
+        else
+            return undo(__func__);
 
-			    if(!found) {
-                    offset.pop();
-                    prepare();
-                    ++offset.top();
-                    require(!check_type(result = identifier_list()));
-					p_node.push_back(result);
-                    require(check_char(offset.top(), ")"));
-					p_node.push_back(Node(tokens[offset.top()], __func__, "): ", 1, true));
-                    ++offset.top();
-					if(!check_type(result = direct_declarator(true))) {
-						p_node.push_back(result);
-						found = true;
-					}
-					found = true;
-			    }
-		    }
-	    }
-
-	    if(found) {
-		    commit(0);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+        commit();
+        return p_node;
     }
 
     Node Parser::parameter_list() {					// Recursive
@@ -963,16 +904,15 @@ namespace Translator {
 	    if(!check_type(result = parameter_declaration())) {
 		    p_node.push_back(result);
 		    if(check_char(offset.top(), ",")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
+			    p_node.push_back(Node(tokens[offset.top()++], __func__));
                 require(!check_type(result = parameter_list()));
 				p_node.push_back(result);
 		    }
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -985,15 +925,15 @@ namespace Translator {
 
 	    if(!check_type(result = declaration_specifiers())) {
 		    p_node.push_back(result);
-		    if(!check_type(result = direct_declarator(false)))
+		    if(!check_type(result = direct_declarator()))
 			    p_node.push_back(result);
 		    else if(!check_type(result = direct_abstract_declarator(false)))
 			    p_node.push_back(result);
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -1006,18 +946,16 @@ namespace Translator {
 
 	    if(check_type(offset.top(), Type::IDENTIFIER)) {
 		    p_node.push_back(Node(tokens[offset.top()], __func__));
-		    if(check_char(offset.top() + 1, ",")) {
-			    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-                offset.top() += 2;
+		    if(check_char(++offset.top(), ",")) {
+			    p_node.push_back(Node(tokens[offset.top()++], __func__));
                 require(!check_type(result = identifier_list()));
 				p_node.push_back(result);
 		    }
-            ++offset.top();
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -1034,9 +972,9 @@ namespace Translator {
 			    p_node.push_back(result);
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -1047,41 +985,27 @@ namespace Translator {
 
 	    func_log(__func__);
 
-        auto parameter_inc = [&]() {
-            ++offset.top();
-            return !check_type(result = parameter_list());
-        };
-
-        auto conditional_inc = [&]() {
-            ++offset.top();
-            return !check_type(result = conditional_expression());
-        };
-
 	    if(check_char(offset.top(), "(")) {
-		    p_node.push_back(Node(tokens[offset.top()], __func__));
+		    p_node.push_back(Node(tokens[offset.top()++], __func__));
 		    if(!recursive) {
-                ++offset.top();
                 require(!check_type(result = direct_abstract_declarator(false)));
 				p_node.push_back(result);
                 require(check_char(offset.top(), ")"));
-				p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
+				p_node.push_back(Node(tokens[offset.top()++], __func__));
 				if(!check_type(result = direct_abstract_declarator(true)))
 					p_node.push_back(result);
 		    }
 		    else {
-			    if(check_char(offset.top() + 1, ")")) {
-				    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-                    offset.top() += 2;
+			    if(check_char(offset.top(), ")")) {
+				    p_node.push_back(Node(tokens[offset.top()++], __func__));
 				    if(!check_type(result = direct_abstract_declarator(true)))
 					    p_node.push_back(result);
 			    }
                 else {
-                    require(parameter_inc());
+                    require(!check_type(result = parameter_list()));
                     p_node.push_back(result);
                     require(check_char(offset.top(), ")"));
-                    p_node.push_back(Node(tokens[offset.top()], __func__));
-                    ++offset.top();
+                    p_node.push_back(Node(tokens[offset.top()++], __func__));
                     if(!check_type(result = direct_abstract_declarator(true)))
                         p_node.push_back(result);
                 }
@@ -1089,26 +1013,24 @@ namespace Translator {
 	    }
 	    else if(check_char(offset.top(), "[")) {
 		    p_node.push_back(Node(tokens[offset.top()], __func__));
-		    if(check_char(offset.top() + 1, "]")) {
-			    p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-                offset.top() += 2;
+		    if(check_char(++offset.top(), "]")) {
+			    p_node.push_back(Node(tokens[offset.top()++], __func__));
 			    if(!check_type(result = direct_abstract_declarator(true)))
 				    p_node.push_back(result);
 		    }
             else {
-                require(conditional_inc());
+                require(!check_type(result = conditional_expression()));
                 p_node.push_back(result);
                 require(check_char(offset.top(), "]"));
-                p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
+                p_node.push_back(Node(tokens[offset.top()++], __func__));
                 if(!check_type(result = direct_abstract_declarator(true)))
                     p_node.push_back(result);
             }
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -1123,18 +1045,16 @@ namespace Translator {
 		    p_node.push_back(result);
 	    }
 	    else if(check_char(offset.top(), "{")) {
-		    p_node.push_back(Node(tokens[offset.top()], __func__));
-            ++offset.top();
+		    p_node.push_back(Node(tokens[offset.top()++], __func__));
             require(!check_type(result = initializer_list()));
 			p_node.push_back(result);
             require(check_char(offset.top(), "}"));
-			p_node.push_back(Node(tokens[offset.top()], __func__));
-            ++offset.top();
+			p_node.push_back(Node(tokens[offset.top()++], __func__));
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -1148,16 +1068,15 @@ namespace Translator {
 	    if(!check_type(result = initializer())) {
 		    p_node.push_back(result);
 		    if(check_char(offset.top(), ",")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
+			    p_node.push_back(Node(tokens[offset.top()++], __func__));
                 require(!check_type(result = initializer_list()));
 				p_node.push_back(result);
 		    }
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -1172,11 +1091,11 @@ namespace Translator {
                 !check_type(result = expression_statement()) || !check_type(result = selection_statement()) ||
                 !check_type(result = iteration_statement()) || !check_type(result = jump_statement())) {
             p_node.push_back(result);
-            commit(0);
+            commit();
             return p_node;
         }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
     }
 
     Node Parser::labeled_statement() {
@@ -1187,84 +1106,64 @@ namespace Translator {
 	    func_log(__func__);
 
 	    if(check_type(offset.top(), Type::CASE)) {
-		    p_node.push_back(Node(tokens[offset.top()], __func__));
-            ++offset.top();
+		    p_node.push_back(Node(tokens[offset.top()++], __func__));
             require(!check_type(result = conditional_expression()));
 			p_node.push_back(result);
             require(check_char(offset.top(), ":"));
-			p_node.push_back(Node(tokens[offset.top()], __func__));
-            ++offset.top();
+			p_node.push_back(Node(tokens[offset.top()++], __func__));
             require(!check_type(result = statement()));
 			p_node.push_back(result);
 	    }
 	    else if(check_type(offset.top(), Type::DEFAULT)) {
 		    p_node.push_back(Node(tokens[offset.top()], __func__));
-            require(check_char(offset.top() + 1, ":"));
-			p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-            offset.top() += 2;
+            require(check_char(++offset.top(), ":"));
+			p_node.push_back(Node(tokens[offset.top()++], __func__));
             require(!check_type(result = statement()));
 			p_node.push_back(result);
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
     Node Parser::compound_statement() {
 	    prepare();
-	    int found = 0;	// Types: 0 - nothing found, 1 - found parentesis with function, 2 - found only parentesis
 	    Node p_node(Token(Type::parsing), __func__);
 	    Node result;
 
 	    func_log(__func__);
 
-        auto statement_inc = [&]() {
-            ++offset.top();
-            return !check_type(result = statement_list());
-        };
-
 	    if(check_char(offset.top(), "{")) {
 		    p_node.push_back(Node(tokens[offset.top()], __func__));
-		    if(check_char(offset.top() + 1, "}")) {
-			    p_node.push_back(Node(tokens[offset.top()], __func__));
-			    found = 2;
+		    if(check_char(++offset.top(), "}")) {
+			    p_node.push_back(Node(tokens[offset.top()++], __func__));
 		    }
-		    else if(statement_inc()) {
+		    else if(!check_type(result = statement_list())) {
 			    p_node.push_back(result);
                 require(check_char(offset.top(), "}"));
-				p_node.push_back(Node(tokens[offset.top()], __func__));
-				found = 1;
+				p_node.push_back(Node(tokens[offset.top()++], __func__));
 		    }
-
-		    if(!found) {
-                offset.pop();
-                prepare();
-                ++offset.top();
+            else {
                 require(!check_type(result = declaration_list()));
 				p_node.push_back(result);
 				if(check_char(offset.top(), "}")) {
-					p_node.push_back(Node(tokens[offset.top()], __func__));
-					found = 1;
+					p_node.push_back(Node(tokens[offset.top()++], __func__));
 				}
                 else {
                     require(!check_type(result = statement_list()));
                     p_node.push_back(result);
                     require(check_char(offset.top(), "}"));
-                    p_node.push_back(Node(tokens[offset.top()], __func__));
-                    found = 1;
+                    p_node.push_back(Node(tokens[offset.top()++], __func__));
                 }
 		    }
 	    }
+        else
+            return undo(__func__);
 
-	    if(found) {
-		    commit(found);
-		    return p_node;
-	    }
-	    else {
-		    return Node(Token(), __func__);
-	    }
+		commit();
+		return p_node;
     }
 
     Node Parser::declaration_list() {			// Recursive
@@ -1280,9 +1179,9 @@ namespace Translator {
 			    p_node.push_back(result);
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -1299,9 +1198,9 @@ namespace Translator {
 			    p_node.push_back(result);
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -1313,17 +1212,17 @@ namespace Translator {
 	    func_log(__func__);
 
 	    if(check_char(offset.top(), ";")) {
-		    p_node.push_back(Node(tokens[offset.top()], __func__));
+		    p_node.push_back(Node(tokens[offset.top()++], __func__, "", 0, true));
 	    }
 	    else if(!check_type(result = expression())) {
 		    p_node.push_back(result);
             require(check_char(offset.top(), ";"));
-			p_node.push_back(Node(tokens[offset.top()], __func__));
+			p_node.push_back(Node(tokens[offset.top()++], __func__, "", 0, true));
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(1);
+		commit();
 		return p_node;
     }
 
@@ -1339,43 +1238,38 @@ namespace Translator {
                 p_node.push_back(Node(tokens[offset.top()], __func__));
             else
 		        p_node.push_back(Node(tokens[offset.top()], __func__, "if "));
-            require(check_char(offset.top() + 1, "("));
-			p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-            offset.top() += 2;
+            require(check_char(++offset.top(), "("));
+			p_node.push_back(Node(tokens[offset.top()++], __func__));
             require(!check_type(result = expression()));
 			p_node.push_back(result);
             require(check_char(offset.top(), ")"));
-			p_node.push_back(Node(tokens[offset.top()], __func__, ": ", 1, true));
-            ++offset.top();
+			p_node.push_back(Node(tokens[offset.top()++], __func__, ": ", 1, true));
             require(!check_type(result = statement()));
 			p_node.push_back(result);
 			if(check_type(offset.top(), Type::ELSE)) {
                 if(tokens[offset.top() + 1].get_type() == Type::IF)
-                    p_node.push_back(Node(tokens[offset.top()], __func__, "elif "));
+                    p_node.push_back(Node(tokens[offset.top()++], __func__, "elif "));
                 else
-					p_node.push_back(Node(tokens[offset.top()], __func__, "else: ", 1, true));
-                ++offset.top();
+					p_node.push_back(Node(tokens[offset.top()++], __func__, "else: ", 1, true));
                 require(!check_type(result = statement()));
 				p_node.push_back(result);
 			}
 	    }
 	    else if(check_type(offset.top(), Type::SWITCH)) {
 		    p_node.push_back(Node(tokens[offset.top()], __func__));
-            require(check_char(offset.top() + 1, "("));
-			p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-            offset.top() += 2;
+            require(check_char(++offset.top(), "("));
+			p_node.push_back(Node(tokens[offset.top()++], __func__));
             require(!check_type(result = expression()));
 			p_node.push_back(result);
             require(check_char(offset.top(), ")"));
-			p_node.push_back(Node(tokens[offset.top()], __func__));
-            ++offset.top();
+			p_node.push_back(Node(tokens[offset.top()++], __func__));
             require(!check_type(result = statement()));
 			p_node.push_back(result);
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -1387,48 +1281,41 @@ namespace Translator {
 	    func_log(__func__);
 
 	    if(check_type(offset.top(), Type::WHILE)) {
-		    p_node.push_back(Node(tokens[offset.top()], __func__));
-            require(check_char(offset.top() + 1, "("));
-			p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-            offset.top() += 2;
+		    p_node.push_back(Node(tokens[offset.top()], __func__, "while "));
+            require(check_char(++offset.top(), "("));
+			p_node.push_back(Node(tokens[offset.top()++], __func__));
             require(!check_type(result = expression()));
 			p_node.push_back(result);
             require(check_char(offset.top(), ")"));
-			p_node.push_back(Node(tokens[offset.top()], __func__));
-            ++offset.top();
+			p_node.push_back(Node(tokens[offset.top()++], __func__, ": ", 1, true));
             require(!check_type(result = statement()));
 			p_node.push_back(result);
 	    }
 	    else if(check_type(offset.top(), Type::DO)) {
-		    p_node.push_back(Node(tokens[offset.top()], __func__));
-            ++offset.top();
+		    p_node.push_back(Node(tokens[offset.top()++], __func__));
             require(!check_type(result = statement()));
 			p_node.push_back(result);
             require(check_type(offset.top(), Type::WHILE));
 			p_node.push_back(Node(tokens[offset.top()], __func__));
-            require(check_char(offset.top() + 1, "("));
-			p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-            offset.top() += 2;
+            require(check_char(++offset.top(), "("));
+			p_node.push_back(Node(tokens[offset.top()++], __func__));
             require(!check_type(result = expression()));
 			p_node.push_back(result);
             require(check_char(offset.top(), ")"));
 			p_node.push_back(Node(tokens[offset.top()], __func__));
-            require(check_char(offset.top() + 1, ";"));
-			p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-            offset.top() += 2;
+            require(check_char(++offset.top(), ";"));
+			p_node.push_back(Node(tokens[offset.top()++], __func__));
 	    }
 	    else if(check_type(offset.top(), Type::FOR)) {
-		    p_node.push_back(Node(tokens[offset.top()], __func__));
-            require(check_char(offset.top() + 1, "("));
-			p_node.push_back(Node(tokens[offset.top() + 1], __func__));
-            offset.top() += 2;
+		    p_node.push_back(Node(tokens[offset.top()], __func__, "for "));
+            require(check_char(++offset.top(), "("));
+			p_node.push_back(Node(tokens[offset.top()++], __func__));
             require(!check_type(result = expression_statement()));
 			p_node.push_back(result);
             require(!check_type(result = expression_statement()));
 			p_node.push_back(result);
 			if(check_char(offset.top(), ")")) {
-				p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
+				p_node.push_back(Node(tokens[offset.top()++], __func__, ": ", 1, true));
                 require(!check_type(result = statement()));
 				p_node.push_back(result);
 			}
@@ -1436,16 +1323,15 @@ namespace Translator {
                 require(!check_type(result = expression()));
                 p_node.push_back(result);
                 require(check_char(offset.top(), ")"));
-                p_node.push_back(Node(tokens[offset.top()], __func__));
-                ++offset.top();
+                p_node.push_back(Node(tokens[offset.top()++], __func__, ": ", 1, true));
                 require(!check_type(result = statement()));
                 p_node.push_back(result);
             }
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 
@@ -1456,33 +1342,27 @@ namespace Translator {
 
 	    func_log(__func__);
 
-        auto expression_inc = [&]() {
-            ++offset.top();
-            return !check_type(result = expression());
-        };
-
 	    if(check_type(offset.top(), Type::BREAK)) {
 		    p_node.push_back(Node(tokens[offset.top()], __func__, "break"));
-            require(check_char(offset.top() + 1, ";"));
-			p_node.push_back(Node(tokens[offset.top() + 1], __func__, "", -1, true));
+            require(check_char(++offset.top(), ";"));
+			p_node.push_back(Node(tokens[offset.top()], __func__, "", -1, true));
 	    }
 	    else if(check_type(offset.top(), Type::RETURN)) {
 		    p_node.push_back(Node(tokens[offset.top()], __func__, "return "));
-		    if(check_char(offset.top() + 1, ";")) {
-			    p_node.push_back(Node(tokens[offset.top() + 1], __func__, "", -1, true));
-                ++offset.top();
+		    if(check_char(++offset.top(), ";")) {
+			    p_node.push_back(Node(tokens[offset.top()++], __func__, "", -1, true));
 		    }
             else {
-                require(expression_inc());
+                require(!check_type(result = expression()));
                 p_node.push_back(result);
                 require(check_char(offset.top(), ";"));
-                p_node.push_back(Node(tokens[offset.top()], __func__, "", -1, true));
+                p_node.push_back(Node(tokens[offset.top()++], __func__, "", -1, true));
             }
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(1);
+		commit();
 		return p_node;
     }
 
@@ -1499,9 +1379,9 @@ namespace Translator {
 			    p_node.push_back(result);
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-        commit(0);
+        commit();
 		return p_node;
     }
 
@@ -1514,11 +1394,11 @@ namespace Translator {
 
 	    if(!check_type(result = function_definition()) || !check_type(result = declaration())) {
 		    p_node.push_back(result);
-            commit(0);
+            commit();
             return p_node;
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
     }
 
     Node Parser::function_definition() {
@@ -1530,19 +1410,20 @@ namespace Translator {
 
 	    if(!check_type(result = declaration_specifiers())) {
 		    p_node.push_back(result);
-            require(!check_type(result = direct_declarator(false)));
+            require(!check_type(result = direct_declarator()));
 			p_node.push_back(result);
 			if(!check_type(result = declaration_list())) {
 				p_node.push_back(result);
                 require(!check_type(result = compound_statement()));
 				p_node.push_back(result);
 			}
-            else {
-                require(!check_type(result = compound_statement()));
+            else if(!check_type(result = compound_statement())) {
                 p_node.push_back(result);
             }
+            else
+                return undo(__func__);
 	    }
-	    else if(!check_type(result = direct_declarator(false))) {
+	    else if(!check_type(result = direct_declarator())) {
 		    p_node.push_back(result);
 		    if(!check_type(result = declaration_list())) {
 			    p_node.push_back(result);
@@ -1555,9 +1436,9 @@ namespace Translator {
             }
 	    }
         else
-            return Node(Token(), __func__);
+            return undo(__func__);
 
-		commit(0);
+		commit();
 		return p_node;
     }
 

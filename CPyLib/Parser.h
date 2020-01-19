@@ -92,7 +92,8 @@ namespace Translator {
 		void func_log(const char*);
 
 		Node primary_expression();
-		Node postfix_expression(bool);
+		Node postfix_expression();
+        Node postfix_expression_rec();
 		Node argument_expression_list();
 		Node unary_expression();
 		Node unary_operator();
@@ -120,7 +121,8 @@ namespace Translator {
 		Node enum_specifier();
 		Node enumerator_list();
 		Node enumerator();
-		Node direct_declarator(bool);
+		Node direct_declarator();
+        Node direct_declarator_rec();
 		Node parameter_list();
 		Node parameter_declaration();
 		Node identifier_list();
@@ -148,7 +150,8 @@ namespace Translator {
         void require(bool condition, std::string error_msg = "");
 
         void prepare() { offset.emplace(offset.top()); }
-        void commit(int inc);
+        void commit();
+        Node undo(const char* func);
 
 	public:
 		Parser() = default;
